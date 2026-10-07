@@ -176,6 +176,12 @@ The URL must be `https`, except on `localhost`, `127.0.0.1` and `[::1]`. Over
 plain http on a shared network, anyone on that network can be the origin: they
 can serve the flow, post a fake success, and read the embed key.
 
+Pass only invite URLs you created, in the Catena dashboard or through the
+Catena API, and hand them to the page from your own server. Never take one from
+your page's query string, a form field, or anything else a visitor or another
+site can set. Whoever chooses the URL chooses the origin the package trusts,
+and can do the same three things.
+
 `open()` throws a `TypeError` if the URL does not parse, is not http or
 https, or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`.
 It also throws if it is called before `<body>` exists with no `container`, or
