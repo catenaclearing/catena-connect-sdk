@@ -1,0 +1,5 @@
+packages:
+  - packages/*
+# NOTE: defensive/ stubs are deliberately NOT workspace packages — they are
+# one-shot publishes handled by .github/workflows/publish-stubs.yml and must
+# never be picked up by changesets or `pnpm -r`.

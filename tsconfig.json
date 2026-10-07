@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    // The wrapper imports the core by its package name, and the core's
+    // manifest points every entry at `dist/`, which CI only builds after the
+    // type-check and the tests have run. Resolving to the source instead keeps
+    // those two steps independent of a build. `vitest.config.ts` carries the
+    // same mapping; the build is untouched because tsup externalizes the core
+    // by name before anything is resolved.
+    "paths": {
+      "@catenaclearing/connect-sdk": ["./packages/connect-sdk/src/index.ts"],
+      "@catenaclearing/connect-sdk/contract": [
+        "./packages/connect-sdk/src/contract.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    "packages/*/tsup.config.ts",
+    "vitest.config.ts",
+    "scripts/**/*.mjs"
+  ]
+}

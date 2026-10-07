@@ -1,0 +1,100 @@
+name: Publish defensive stubs
+
+# One-shot, manually triggered. Publishes the typosquat-defense placeholder
+# packages in defensive/ and immediately deprecates them with a pointer to
+# the real package. Idempotent: already-published names are skipped (but
+# still re-deprecated, so edits to the message can be re-applied).
+#
+# NOTE: npm burns a version number permanently — a version that was published
+# and later unpublished can never be republished, even once the 24h name block
+# lifts ("Cannot publish over previously published version"). 0.0.1 was spent
+# that way on 2026-09-16; if these ever need republishing again, bump the
+# version in every defensive/*/package.json rather than reusing one.
+#
+# Auth: brand-new package names cannot always be born via OIDC trusted
+# publishing, and `npm deprecate` needs a real token either way. Create a
+# SHORT-LIVED granular access token on npmjs.com (permission: read/write,
+# scope: new packages), store it as the NPM_STUB_TOKEN secret on the
+# npm-bootstrap environment (NOT a repo secret — the environment's branch
+# policy pins runs to main, so a modified workflow on a side branch cannot
+# read the token), run this workflow once, then REVOKE the token and delete
+# the secret.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-bootstrap
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+      - name: Publish and deprecate stubs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_STUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          MESSAGE="Defensive placeholder against typosquatting. The official Catena Connect SDK is @catenaclearing/connect-sdk."
+          names=()
+          failed=()
+
+          # Pass 1 — publish every stub. Publishing is the part that actually
+          # defends the name, so one failure must not skip the rest.
+          for dir in defensive/*/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            version=$(node -p "require('./${dir}package.json').version")
+            names+=("$name@$version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version already published — skipping publish"
+            elif ! (cd "$dir" && npm publish --access public); then
+              echo "::error::publish failed for $name"
+              failed+=("publish:$name")
+            fi
+          done
+
+          # Pass 2 — deprecate, with retries. Three npm quirks to absorb:
+          # right after a publish it can fail until the package document
+          # propagates; re-applying an identical message is rejected as E422
+          # Unprocessable Entity (so skip anything already correct); and the
+          # bare-name form intermittently dies with "Cannot convert undefined
+          # or null to object", so always pass an explicit name@version.
+          for spec in "${names[@]}"; do
+            current=$(npm view "$spec" deprecated 2>/dev/null || echo "")
+            if [ "$current" = "$MESSAGE" ]; then
+              echo "$spec already carries the current message — skipping"
+              continue
+            fi
+            for attempt in 1 2 3 4 5; do
+              # `npm deprecate` exits 0 without doing anything when the WRITE
+              # packument does not yet list the version (it filters versions
+              # and silently skips an empty match), which happens for seconds
+              # after a publish. Never trust the exit code — read the value
+              # back before calling it done.
+              npm deprecate "$spec" "$MESSAGE" || true
+              if [ "$(npm view "$spec" deprecated 2>/dev/null || echo "")" = "$MESSAGE" ]; then
+                echo "$spec deprecated"
+                break
+              fi
+              if [ "$attempt" = "5" ]; then
+                echo "::error::deprecate failed for $spec after 5 attempts"
+                failed+=("deprecate:$spec")
+              else
+                echo "deprecate $spec failed (attempt $attempt) — retrying"
+                sleep 20
+              fi
+            done
+          done
+
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::unresolved: ${failed[*]}"
+            exit 1
+          fi

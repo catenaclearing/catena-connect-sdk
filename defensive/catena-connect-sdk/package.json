@@ -1,0 +1,10 @@
+{
+  "name": "catena-connect-sdk",
+  "version": "1.0.0",
+  "description": "Defensive placeholder against typosquatting. The official Catena Connect SDK is @catenaclearing/connect-sdk.",
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ]
+}

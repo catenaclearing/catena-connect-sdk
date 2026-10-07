@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    // tsup's dts worker injects `baseUrl`, which typescript@6 (pinned here
+    // for the dts build — TS7 has no JS compiler API) reports as deprecated.
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src", "tsup.config.ts"]
+}

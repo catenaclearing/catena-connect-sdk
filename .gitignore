@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+
+# Spec-driven workflow scaffolding and per-feature spec artifacts.
+# Kept local: spec directories record issue-tracker identifiers, URLs and
+# authorship, none of which belong in a repository published publicly.
+.specify/
+specs/
+.claude/
+CLAUDE.local.md

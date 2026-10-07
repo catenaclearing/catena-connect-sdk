@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency: release
+
+permissions:
+  contents: write
+  pull-requests: write
+  # Required for npm trusted publishing (OIDC).
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Gates the bootstrap npm token and, permanently, the OIDC exchange to
+    # runs on main (deployment branch policy). NOTE: because this job runs in
+    # an environment, the OIDC subject is environment-specific — the npm
+    # trusted publisher MUST be configured with environment "npm-bootstrap".
+    # Keep the environment even after the bootstrap token is revoked.
+    environment: npm-bootstrap
+    steps:
+      # persist-credentials: false keeps the write-capable GITHUB_TOKEN out of
+      # .git/config while pnpm install runs; git auth is configured explicitly
+      # afterwards for the changesets push.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      # OIDC trusted publishing requires npm >= 11.5.1; Node 22 ships npm 10.
+      - run: npm install -g npm@latest
+      - name: Authenticate git for the release push
+        run: git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release PR or publish
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          version-script: pnpm version-packages
+          publish-script: pnpm release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Publishing authenticates via npm trusted publishing (OIDC) — the
+          # trusted publisher is bound to this repo + release.yml + the
+          # npm-bootstrap environment. There is deliberately no npm token
+          # anywhere in this repo, and the package disallows token publishes.
+          #
+          # Provenance needs no flag: npm attaches it automatically to a
+          # trusted publish of a public package from a public repository. It
+          # validates each package.json `repository.url` against this repo,
+          # so that field must keep matching it exactly.

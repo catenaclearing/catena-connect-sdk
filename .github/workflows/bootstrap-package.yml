@@ -1,0 +1,152 @@
+name: Bootstrap a package
+
+# One-shot, manually triggered. Publishes the FIRST version of a workspace
+# package so that its name exists on the registry, then deprecates that
+# version at once with a pointer to the first real release.
+#
+# Why this exists: npm attaches a trusted publisher (OIDC) to a package that
+# has already been published, so a brand-new name cannot be born through
+# release.yml. This workflow publishes it once with a token; after that the
+# trusted publisher is attached on npmjs.com, the package is set to "require
+# 2FA and disallow tokens", and release.yml publishes every later version
+# over OIDC like the core. The package stays `"private": true` in the
+# repository until then; the `private` flag is removed in this job's checkout
+# only, never committed, and a small follow-up PR flips it for real.
+#
+# Auth: mint-run-revoke. Create a SHORT-LIVED granular access token on
+# npmjs.com (permission: read/write, scope: new packages), store it as the
+# NPM_STUB_TOKEN secret on the npm-bootstrap environment (NOT a repo secret —
+# the environment's branch policy pins runs to main, so a modified workflow on
+# a side branch cannot read the token), run this workflow once, then REVOKE
+# the token and delete the secret.
+#
+# A published version number is burned permanently, even after an unpublish.
+# If a bootstrap has to be repeated, pass the next version rather than
+# reusing one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Directory under packages/"
+        type: string
+        required: true
+      version:
+        description: "Version to publish and deprecate"
+        type: string
+        required: true
+        default: "0.0.1"
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    environment: npm-bootstrap
+    env:
+      # Inputs go through env, never into a `run:` script by expression, so a
+      # value with shell metacharacters is data rather than code.
+      PACKAGE: ${{ inputs.package }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          case "$PACKAGE" in
+            ""|*[!A-Za-z0-9_-]*|-*) echo "::error::package must be a plain directory name under packages/ (letters, digits, - and _)"; exit 1 ;;
+          esac
+          if [ ! -f "packages/$PACKAGE/package.json" ]; then
+            echo "::error::packages/$PACKAGE/package.json does not exist"
+            exit 1
+          fi
+          # Only a package the repository still marks private is unborn. A
+          # published package is released by release.yml over OIDC, and this
+          # job must never strip its flag or deprecate one of its versions.
+          if [ "$(node -p "require('./packages/' + process.env.PACKAGE + '/package.json').private === true")" != "true" ]; then
+            echo "::error::packages/$PACKAGE is not private: it is already published and belongs to release.yml"
+            exit 1
+          fi
+          # A bootstrap version is always 0.x.y: the deprecation message points
+          # at 1.0.0, and this job must never be able to deprecate a real
+          # release by being handed its number.
+          if ! printf '%s\n' "$VERSION" | grep -Eq '^0\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version must be a 0.x.y bootstrap version, like 0.0.1"
+            exit 1
+          fi
+      - run: pnpm install --frozen-lockfile
+      - name: Build the package and the workspace packages it depends on
+        # The `{dir}...` selector includes the package's workspace
+        # dependencies, built first in dependency order. The wrapper's
+        # declaration build resolves the core through its manifest, which
+        # points at the core's `dist/`, so building the wrapper alone fails
+        # with "Cannot find module" on a fresh checkout.
+        run: pnpm --filter "{./packages/$PACKAGE}..." build
+      - name: Publish and deprecate the bootstrap version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_STUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          cd "packages/$PACKAGE"
+          NAME=$(node -p "require('./package.json').name")
+          SPEC="$NAME@$VERSION"
+          MESSAGE="Reserved the package name. Install 1.0.0 or later."
+
+          # The checkout only: the repository keeps the package private until
+          # the flip PR after this run.
+          npm pkg delete private
+          npm pkg set version="$VERSION"
+
+          if npm view "$SPEC" version >/dev/null 2>&1; then
+            echo "$SPEC already published — skipping publish"
+          elif ! pnpm publish --access public --no-git-checks; then
+            echo "::error::publish failed for $SPEC"
+            exit 1
+          fi
+
+          # Read the version back before trusting the publish.
+          published=""
+          for attempt in 1 2 3 4 5; do
+            published=$(npm view "$SPEC" version 2>/dev/null || echo "")
+            [ "$published" = "$VERSION" ] && break
+            echo "$SPEC not visible yet (attempt $attempt) — retrying"
+            sleep 20
+          done
+          if [ "$published" != "$VERSION" ]; then
+            echo "::error::$SPEC is not on the registry after publishing"
+            exit 1
+          fi
+
+          # Deprecate, with retries. Three npm quirks to absorb, the same ones
+          # publish-stubs.yml works around: right after a publish `npm
+          # deprecate` exits 0 without doing anything until the write
+          # packument lists the version, so never trust the exit code and
+          # read the value back; re-applying an identical message is rejected
+          # as E422, so skip when it is already right; and the bare-name form
+          # intermittently fails, so always pass an explicit name@version.
+          if [ "$(npm view "$SPEC" deprecated 2>/dev/null || echo "")" = "$MESSAGE" ]; then
+            echo "$SPEC already carries the deprecation message"
+            exit 0
+          fi
+          for attempt in 1 2 3 4 5; do
+            npm deprecate "$SPEC" "$MESSAGE" || true
+            if [ "$(npm view "$SPEC" deprecated 2>/dev/null || echo "")" = "$MESSAGE" ]; then
+              echo "$SPEC deprecated"
+              exit 0
+            fi
+            if [ "$attempt" = "5" ]; then
+              echo "::error::deprecate failed for $SPEC after 5 attempts"
+              exit 1
+            fi
+            echo "deprecate $SPEC failed (attempt $attempt) — retrying"
+            sleep 20
+          done
