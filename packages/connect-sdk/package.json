@@ -1,6 +1,6 @@
 {
   "name": "@catenaclearing/connect-sdk",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Embed SDK for Catena Connect \u2014 connect fleet telematics to Catena from your own application.",
   "license": "MIT",
   "repository": {

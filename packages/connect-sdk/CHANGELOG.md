@@ -1,5 +1,11 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- 880f67b: Releases are now published with npm provenance, so you can check that a tarball was built from this repository by its release workflow with `npm audit signatures`. The package metadata now links to the source repository. No code change.
+
 ## 1.0.0-beta.0
 
 ### Major Changes

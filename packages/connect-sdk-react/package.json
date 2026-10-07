@@ -1,6 +1,6 @@
 {
   "name": "@catenaclearing/connect-sdk-react",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "React hook and component for Catena Connect \u2014 embed the telematics-connection flow in a React application.",
   "license": "MIT",
   "repository": {
