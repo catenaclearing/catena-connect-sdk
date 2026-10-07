@@ -165,6 +165,10 @@ section is the reference. Those three differ for a component's life cycle:
 - **`inviteUrl` may be absent while your application is still loading it.**
   `open()` throws until it is there. That is a programming error to fix, not
   a state to wait out: a button wired up before the invitation arrived.
+  When it does arrive, it should come from your own server, never from the
+  page's URL or other input a visitor controls; the core README's
+  [`inviteUrl`](https://github.com/catenaclearing/catena-connect-sdk/blob/main/packages/connect-sdk/README.md#inviteurl)
+  section says why.
 - **`container` is a ref**, read when `open()` is called, so it can point at
   an element rendered by the same component. Omit it and the flow renders in
   the core's overlay.
