@@ -1,0 +1,26 @@
+# Security updates only. open-pull-requests-limit: 0 turns off routine
+# version-bump PRs; Dependabot still opens a PR when an advisory lands
+# against something in the lockfile or a workflow. Each ecosystem's
+# fixes arrive as one grouped PR rather than one per package.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # Bumps the commit SHA and keeps the "# vX.Y.Z" comment in step.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
