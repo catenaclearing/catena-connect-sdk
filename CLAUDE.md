@@ -117,10 +117,13 @@ Flow:
 
 Notes:
 
-- `npm install -g npm@latest` in the job is required — OIDC trusted publishing
-  needs npm >= 11.5.1, and the npm bundled with a Node release is pinned at
-  whatever shipped with it. Do not drop the step on the assumption that a
-  newer Node makes it redundant; check the bundled version first.
+- `npm install -g npm@<exact version>` in the job is required — OIDC trusted
+  publishing needs npm >= 11.5.1, and the npm bundled with a Node release is
+  pinned at whatever shipped with it. Do not drop the step on the assumption
+  that a newer Node makes it redundant; check the bundled version first. The
+  version is pinned exactly, never `@latest`, so the npm that publishes only
+  changes through a reviewed PR. To bump it, pick a release whose `engines`
+  covers `.nvmrc` (`npm view npm@<version> engines`).
 - The job runs in the `npm-bootstrap` environment. That environment name is part
   of the OIDC subject, so the npm trusted publisher is configured with it. Keep
   the environment.
