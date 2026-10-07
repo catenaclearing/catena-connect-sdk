@@ -23,9 +23,13 @@ report it here anyway and we'll get it to the right place.
 
 ## Fixes
 
-A fix ships as a new release of the package, so the fix is to upgrade to the
-latest version. The changelog and the published advisory say which versions
-are affected.
+A fix to a package ships as a new release of that package, so the fix is to
+upgrade to the latest version. The changelog and the published advisory say
+which versions are affected.
+
+A fix to the build or release workflows lands as a change to this repository
+and needs nothing from you. If it could have affected something already
+published, the advisory says which releases and what to do about them.
 
 ## Look-alike packages
 
