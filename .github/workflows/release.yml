@@ -37,6 +37,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # OIDC trusted publishing requires npm >= 11.5.1. Pinned to an exact
       # version so the npm that publishes only changes through a reviewed PR.
+      # To bump: pick a release whose engines cover .nvmrc
+      # (`npm view npm@<version> engines`) and change the version here.
       - run: npm install -g npm@12.2.0
       - name: Authenticate git for the release push
         run: git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
