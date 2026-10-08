@@ -43,11 +43,15 @@ export const BRAND_LOGO_DARK_PARAM = "brand_logo_dark";
 export const BRAND_COLOR_PARAM = "brand_color";
 
 /**
- * The name the flow's window is opened under.
+ * The prefix every flow window's name starts with. Each launch adds its own
+ * suffix (`windowName()` in `modes.ts`).
  *
- * Fixed rather than generated so that reopening finds the existing window
- * instead of stacking a second one beside it. It is also why we allow only
- * one launch at a time: two launches would share this window.
+ * Not a fixed name, because `window.open` with a name first looks for a
+ * window already carrying it, and a window left over from an earlier page,
+ * one this document did not open, is one the browser will not let it
+ * navigate. Chrome refuses with "Unsafe attempt to initiate navigation"
+ * instead of opening the flow. Bringing an open window back never needed the
+ * name: the launch holds the window it opened and focuses that.
  */
 export const WINDOW_NAME = "catena-connect";
 

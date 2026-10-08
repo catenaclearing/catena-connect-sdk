@@ -81,8 +81,18 @@ export function openPopup(launchUrl: string): Window | null {
   // provider step belongs in a window of its own rather than in this one.
   // Teardown closes the window, so the reference lives exactly as long as the
   // launch does.
-  const popup = window.open(launchUrl, WINDOW_NAME) ?? null;
+  const popup = window.open(launchUrl, windowName()) ?? null;
   return popup !== null && isClosed(popup) ? null : popup;
+}
+
+/**
+ * A name no other window has, so `window.open` always opens a new one rather
+ * than finding a window left over from an earlier page. Not secret, only
+ * distinct: the time and a random tail are enough to never meet a stale name.
+ */
+function windowName(): string {
+  const tail = Math.random().toString(36).slice(2, 10);
+  return `${WINDOW_NAME}-${Date.now().toString(36)}-${tail}`;
 }
 
 /**

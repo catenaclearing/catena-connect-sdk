@@ -72,8 +72,9 @@ interface Launch {
 }
 
 /**
- * One launch at a time. The window name is fixed upstream, so two launches
- * would share one window while both listeners matched every message.
+ * One launch at a time. Two would put two flows in front of the user, each
+ * with its own surface or window and its own callbacks, and nothing to tell
+ * them which one they were finishing.
  */
 let live: Launch | null = null;
 
@@ -128,7 +129,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // the app lets this page frame the flow depends on it.
   const { embedKey } = options;
   // Built now rather than when the verdict lands, so the launch is decided by
-  // the options as they were at the call. The probe puts up to a second between
+  // the options as they were at the call. The probe can put seconds between
   // the two, and a caller re-rendering in that window should not be able to
   // move the frame somewhere else.
   const launchUrl = buildLaunchUrl(options);
@@ -222,8 +223,8 @@ function offer(launch: Launch, launchUrl: string): void {
 
     // The window is already open, so they are asking to be taken back to it —
     // it has slipped behind the page. Calling `window.open` again would not do
-    // that: the fixed name finds this window and *navigates* it, restarting a
-    // flow they are part-way through.
+    // that: it opens a second window beside this one, restarting a flow they
+    // are part-way through.
     if (opened !== null && !isClosed(opened)) {
       opened.focus();
       return;
@@ -270,9 +271,7 @@ function offer(launch: Launch, launchUrl: string): void {
 
     // The window goes with the launch that opened it, the same way frame mode's
     // frame does. A window left standing puts the user in a flow nobody is
-    // listening for any more — and because the window name is fixed, it is the
-    // very window the next launch would be handed, still showing the last
-    // flow's document and passing all three message guards.
+    // listening for any more, beside whatever window the next launch opens.
     close(opened);
     opened = null;
   });

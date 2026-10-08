@@ -14,9 +14,11 @@
  * minor release when the contract does.
  *
  * `PROBE_BUDGET_MS` is here for one assertion: the probe page caps its own round
- * trip and this package waits for it, so the app can check that its cap plus
- * the document load in front of it fits inside what is waited for. That is the
- * one coupling between the two that no type expresses.
+ * trip and this package waits for it, so the app can check that its cap fits
+ * inside what is waited for. That wait starts at the page's `load` event, so
+ * the document's own delivery is not part of it; `PROBE_LOAD_BUDGET_MS` is how
+ * long that delivery may take. That is the one coupling between the two that
+ * no type expresses.
  *
  * `@catenaclearing/connect-sdk/contract`
  */
@@ -46,7 +48,10 @@ import {
   VARIANT_PARAM,
 } from "./wire";
 
-export { BUDGET_MS as PROBE_BUDGET_MS } from "./probe";
+export {
+  BUDGET_MS as PROBE_BUDGET_MS,
+  LOAD_BUDGET_MS as PROBE_LOAD_BUDGET_MS,
+} from "./probe";
 
 export {
   BRAND_COLOR_PARAM,
