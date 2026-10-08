@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     branches: [main]
+  # A manual run of the same job, for when GitHub drops the push event after a
+  # merge and nothing starts. It does the same thing a push would: open or
+  # update the Version Packages PR, or publish what is not yet on npm. The
+  # npm-bootstrap environment only deploys from main, so a run started on any
+  # other branch cannot publish.
+  workflow_dispatch:
 
 concurrency: release
 
