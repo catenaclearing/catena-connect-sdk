@@ -41,12 +41,40 @@ async function settled(page: Page, started: number): Promise<Outcome> {
   return { mode, ms: Date.now() - started };
 }
 
+/**
+ * Tests that need the browser to carry a partitioned cookie in a cross-site
+ * frame, because they expect the flow to end up there.
+ *
+ * WebKit on Linux does not carry it, so on that platform the SDK correctly
+ * offers the window and these cannot test the frame. They are skipped there,
+ * and "a browser that refuses the cookie" below pins that fallback instead.
+ * WebKit on macOS carries the cookie and runs them.
+ */
+const FRAMED = { tag: "@frame" };
+
+async function refusesPartitionedCookies(
+  page: Page,
+  browserName: string
+): Promise<boolean> {
+  if (browserName !== "webkit") return false;
+  const platform = await page.evaluate(() => navigator.platform);
+  return platform.startsWith("Linux");
+}
+
+test.beforeEach(async ({ page, browserName }, testInfo) => {
+  if (!testInfo.tags.includes("@frame")) return;
+  test.skip(
+    await refusesPartitionedCookies(page, browserName),
+    "This browser does not carry a partitioned cookie in a cross-site frame"
+  );
+});
+
 async function events(page: Page): Promise<string[]> {
   return page.evaluate(() => (window as { events?: string[] }).events ?? []);
 }
 
 test.describe("a fast network", () => {
-  test("frames the flow straight away", async ({ page }) => {
+  test("frames the flow straight away", FRAMED, async ({ page }) => {
     await partnerPage(page);
     const outcome = await launch(page, key("fast"));
 
@@ -82,51 +110,57 @@ test.describe("a fast network", () => {
 });
 
 test.describe("a slow network", () => {
-  test("waits for a probe page that takes four seconds to arrive", async ({
-    page,
-  }) => {
-    // A cold connection through a TLS-inspecting proxy. Before the load
-    // budget, anything over 2.5 seconds here was sent to the window.
-    await partnerPage(page);
-    const outcome = await launch(page, key("doc=4000"));
+  test(
+    "waits for a probe page that takes four seconds to arrive",
+    FRAMED,
+    async ({ page }) => {
+      // A cold connection through a TLS-inspecting proxy. Before the load
+      // budget, anything over 2.5 seconds here was sent to the window.
+      await partnerPage(page);
+      const outcome = await launch(page, key("doc=4000"));
 
-    expect(outcome.mode).toBe("frame");
-    expect(outcome.ms).toBeGreaterThanOrEqual(3800);
-  });
+      expect(outcome.mode).toBe("frame");
+      expect(outcome.ms).toBeGreaterThanOrEqual(3800);
+    }
+  );
 
-  test("frames on the first launch when only the first contact is slow", async ({
-    page,
-  }) => {
-    await partnerPage(page);
-    const outcome = await launch(page, key("docOnce=3000"));
+  test(
+    "frames on the first launch when only the first contact is slow",
+    FRAMED,
+    async ({ page }) => {
+      await partnerPage(page);
+      const outcome = await launch(page, key("docOnce=3000"));
 
-    expect(outcome.mode).toBe("frame");
-  });
+      expect(outcome.mode).toBe("frame");
+    }
+  );
 
-  test("waits for a slow cookie round trip", async ({ page }) => {
+  test("waits for a slow cookie round trip", FRAMED, async ({ page }) => {
     await partnerPage(page);
     const outcome = await launch(page, key("set=500;check=500"));
 
     expect(outcome.mode).toBe("frame");
   });
 
-  test("moves the wait off the click when the page preloads", async ({
-    page,
-  }) => {
-    await partnerPage(page);
-    const embedKey = key("doc=3000");
-    await page.evaluate((k) => {
-      (window as unknown as { sdk: { preload(k: string): void } }).sdk.preload(
-        k
-      );
-    }, embedKey);
-    await page.waitForTimeout(3500);
+  test(
+    "moves the wait off the click when the page preloads",
+    FRAMED,
+    async ({ page }) => {
+      await partnerPage(page);
+      const embedKey = key("doc=3000");
+      await page.evaluate((k) => {
+        (
+          window as unknown as { sdk: { preload(k: string): void } }
+        ).sdk.preload(k);
+      }, embedKey);
+      await page.waitForTimeout(3500);
 
-    const outcome = await launch(page, embedKey);
+      const outcome = await launch(page, embedKey);
 
-    expect(outcome.mode).toBe("frame");
-    expect(outcome.ms).toBeLessThan(1000);
-  });
+      expect(outcome.mode).toBe("frame");
+      expect(outcome.ms).toBeLessThan(1000);
+    }
+  );
 });
 
 test.describe("a probe that never answers", () => {
@@ -153,19 +187,38 @@ test.describe("a probe that never answers", () => {
     expect(outcome.ms).toBeGreaterThanOrEqual(7800);
   });
 
-  test("checks again on the next launch instead of remembering the timeout", async ({
-    page,
-  }) => {
+  test(
+    "checks again on the next launch instead of remembering the timeout",
+    FRAMED,
+    async ({ page }) => {
+      await partnerPage(page);
+      const embedKey = key("docOnce=hang");
+
+      expect((await launch(page, embedKey)).mode).toBe("continue");
+
+      await page.evaluate(() => {
+        (window as unknown as { sdk: { destroy(): void } }).sdk.destroy();
+      });
+      const second = await launch(page, embedKey);
+
+      expect(second.mode).toBe("frame");
+    }
+  );
+});
+
+test.describe("a browser that refuses the cookie", () => {
+  test("offers the window on a fast network", async ({ page, browserName }) => {
+    // The other half of the skip above: where the browser will not carry the
+    // cookie, a fast network still ends at the window, and promptly.
     await partnerPage(page);
-    const embedKey = key("docOnce=hang");
+    test.skip(
+      !(await refusesPartitionedCookies(page, browserName)),
+      "This browser carries the cookie; the frame tests cover it"
+    );
 
-    expect((await launch(page, embedKey)).mode).toBe("continue");
+    const outcome = await launch(page, key("fast"));
 
-    await page.evaluate(() => {
-      (window as unknown as { sdk: { destroy(): void } }).sdk.destroy();
-    });
-    const second = await launch(page, embedKey);
-
-    expect(second.mode).toBe("frame");
+    expect(outcome.mode).toBe("continue");
+    expect(outcome.ms).toBeLessThan(2000);
   });
 });

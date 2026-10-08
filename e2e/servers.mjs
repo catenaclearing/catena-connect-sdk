@@ -97,10 +97,14 @@ function scenario(raw) {
 /** How many times each scenario's probe document has been asked for. */
 const documentHits = new Map();
 
+/** No scenario holds a response longer than this, whatever the key asks. */
+const MAX_DELAY_MS = 30_000;
+
 /** Hold a response for `ms`, giving up quietly if the browser goes away. */
 function after(ms, req, send) {
   if (ms === "hang") return;
-  const timer = setTimeout(send, Number(ms) || 0);
+  const delay = Math.min(Math.max(Number(ms) || 0, 0), MAX_DELAY_MS);
+  const timer = setTimeout(send, delay);
   req.on("close", () => clearTimeout(timer));
 }
 
