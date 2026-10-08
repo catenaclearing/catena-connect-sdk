@@ -44,6 +44,24 @@ pnpm build      # tsup build for every package, then the publication check
 `pnpm check:fix` applies Biome's auto-fixes. CI runs the four commands above
 in that order.
 
+### Browser tests
+
+jsdom loads no frames and has no network, so the iframe check's timing is
+tested in real browsers as well. `e2e/servers.mjs` serves a partner page on
+`https://localhost:4601` and a stand-in for the connect origin on
+`https://127.0.0.1:4602`, two different sites, so the check runs as a real
+cross-site frame. The embed key carries the scenario: `doc=4000;set=300` holds
+the check page for four seconds and its cookie request for 300ms.
+
+```sh
+pnpm exec playwright install chromium firefox webkit   # once
+pnpm build
+pnpm test:e2e
+```
+
+`SDK_DIST=/path/to/dist pnpm test:e2e` runs the same scenarios against another
+build, such as an earlier release. CI runs them in a job of their own.
+
 ### Publication check
 
 Everything in this repository is public, and `packages/` is also bundled into

@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { detectPartitionedCookies, resolvedVerdict } from "./probe";
+import {
+  BUDGET_MS,
+  detectPartitionedCookies,
+  LOAD_BUDGET_MS,
+  resolvedVerdict,
+} from "./probe";
 
 /**
  * A fresh origin for every test.
@@ -74,9 +79,17 @@ function answer(
   return pending;
 }
 
-/** Let the budget run out, which is how a silenced probe settles. */
+/**
+ * Let the budget run out, which is how a silenced probe settles. jsdom loads
+ * nothing and fires no `load`, so this is the page that never arrived.
+ */
 async function exhaustBudget(): Promise<void> {
-  await vi.advanceTimersByTimeAsync(2500);
+  await vi.advanceTimersByTimeAsync(LOAD_BUDGET_MS);
+}
+
+/** The probe page arriving, as the browser reports it. */
+function loadFrame(): void {
+  probeFrame()?.dispatchEvent(new Event("load"));
 }
 
 beforeEach(() => {
@@ -274,18 +287,14 @@ describe("failing closed", () => {
   });
 
   it("still remembers a verdict the browser did give it", async () => {
-    // The control for the two above: a budget that ran out is the browser
-    // answering, not a probe that never ran, and it is cached like any
-    // other measurement.
+    // The control for the two above: a reported refusal is the browser
+    // answering, and it is cached like any other measurement.
     const origin = nextOrigin();
 
-    const pending = detectPartitionedCookies(origin);
-    await exhaustBudget();
-    await pending;
+    await answer(origin, verdict(false));
 
     expect(resolvedVerdict(origin)).toBe("unsupported");
   });
-
   it("leaves no listener or timer behind when setup fails", async () => {
     const append = vi.spyOn(document.body, "append").mockImplementation(() => {
       throw new TypeError("no body to append to");
@@ -305,6 +314,113 @@ describe("failing closed", () => {
     await exhaustBudget();
 
     await expect(pending).resolves.toBeDefined();
+  });
+});
+
+describe("a slow network", () => {
+  it("waits for a page that is slow to arrive", async () => {
+    // The case the load budget exists for: a cold connection through a
+    // proxy takes seconds to deliver the page, and the cookie works fine
+    // once it does.
+    const origin = nextOrigin();
+    const pending = detectPartitionedCookies(origin);
+
+    await vi.advanceTimersByTimeAsync(LOAD_BUDGET_MS - 500);
+    loadFrame();
+    deliver({
+      origin,
+      source: probeFrame()?.contentWindow,
+      data: verdict(true),
+    });
+
+    await expect(pending).resolves.toBe("supported");
+  });
+
+  it("gives the page its full budget from the moment it loads", async () => {
+    // Counted from `load`, so a slow document does not eat into the time
+    // the page has for its own round trip.
+    const origin = nextOrigin();
+    const pending = detectPartitionedCookies(origin);
+
+    await vi.advanceTimersByTimeAsync(LOAD_BUDGET_MS - 500);
+    loadFrame();
+    await vi.advanceTimersByTimeAsync(BUDGET_MS - 1);
+    deliver({
+      origin,
+      source: probeFrame()?.contentWindow,
+      data: verdict(true),
+    });
+
+    await expect(pending).resolves.toBe("supported");
+  });
+
+  it("gives up on a loaded page that never answers, on the shorter budget", async () => {
+    // A frame the app refuses still loads, as the browser's error page, and
+    // then says nothing. That should not cost the full load budget.
+    const origin = nextOrigin();
+    const pending = detectPartitionedCookies(origin);
+
+    loadFrame();
+    await vi.advanceTimersByTimeAsync(BUDGET_MS);
+
+    expect(await pending).toBe("unsupported");
+    expect(probeFrame()).toBeNull();
+  });
+
+  it("restarts the clock once, not on every load", async () => {
+    const origin = nextOrigin();
+    const pending = detectPartitionedCookies(origin);
+
+    loadFrame();
+    await vi.advanceTimersByTimeAsync(BUDGET_MS - 1);
+    loadFrame();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(await pending).toBe("unsupported");
+  });
+
+  it("does not remember a page that never arrived", async () => {
+    // Running out of time says the network was slow on this attempt, not
+    // that the browser refuses the cookie. Remembering it would put the
+    // page on the window for the rest of its life.
+    const origin = nextOrigin();
+    const pending = detectPartitionedCookies(origin);
+
+    await exhaustBudget();
+
+    expect(await pending).toBe("unsupported");
+    expect(resolvedVerdict(origin)).toBeNull();
+  });
+
+  it("does not remember a page that loaded and never answered", async () => {
+    const origin = nextOrigin();
+    const pending = detectPartitionedCookies(origin);
+
+    loadFrame();
+    await vi.advanceTimersByTimeAsync(BUDGET_MS);
+
+    expect(await pending).toBe("unsupported");
+    expect(resolvedVerdict(origin)).toBeNull();
+  });
+
+  it("measures again on the next launch after a timeout", async () => {
+    // What the user in a slow first load gets on their second try: a fresh
+    // probe over a now-warm connection, not the first attempt's timeout.
+    const origin = nextOrigin();
+    const first = detectPartitionedCookies(origin);
+    await exhaustBudget();
+    await first;
+
+    const second = detectPartitionedCookies(origin);
+    expect(probeFrame()).not.toBeNull();
+    deliver({
+      origin,
+      source: probeFrame()?.contentWindow,
+      data: verdict(true),
+    });
+
+    await expect(second).resolves.toBe("supported");
+    expect(resolvedVerdict(origin)).toBe("supported");
   });
 });
 

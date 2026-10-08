@@ -395,7 +395,9 @@ and `resume()` delivers only the outcome you declare, followed by `onClose`.
 1. **Iframe.** The surface renders immediately with a brief loading state
    while the package checks whether this browser will run the flow in an
    iframe. If it will, the iframe mounts in the surface. No warm-up call, no
-   popup, no user gesture needed.
+   popup, no user gesture needed. On a slow network the check can take a few
+   seconds to arrive, and the loading state waits for it rather than falling
+   back early.
 2. **Popup.** The flow needs a cookie in a cross-site context, and not every
    browser will send one. Where the iframe check fails, the surface shows a
    button instead, and clicking it opens the flow in a popup window. One
@@ -511,8 +513,11 @@ loading state. `embedKey` is optional. Pass the same key you will pass to
 runs, but `open()` repeats it with the key.
 
 It is an optimization, not a requirement. `open()` behaves the same whether or
-not you call it; the only difference is a loading state about one network
-round trip long.
+not you call it; the only difference is how long the loading state lasts. That
+is usually one network round trip, but the first contact with the connect
+origin can take a few seconds on a slow network or behind a corporate proxy.
+Calling `preload()` when the page holding your button loads moves that wait
+off the user's click.
 
 It cannot break your page. An invite URL the package cannot derive an origin
 from is ignored here. The same URL throws from `open()`, where a launch is at
@@ -520,7 +525,9 @@ stake.
 
 The result is held for the life of the page and never persisted. Browser
 settings change between visits, and a remembered "supported" would strand
-someone in an iframe their browser no longer allows.
+someone in an iframe their browser no longer allows. A check that timed out
+is not held at all: it says the network was slow that time, not what the
+browser allows, so the next `open()` checks again.
 
 ## When you receive nothing
 
@@ -818,9 +825,10 @@ invitation URL in `frame-src`, or in `child-src` if your policy has no
 `frame-src`, or in `default-src` if it has neither. The cookie probe is a
 frame on the same origin and falls under the same directive. The package
 makes no requests of its own, so no other directive needs to change. A
-refused cookie decides within one round trip; a frame that never answers,
-including on an unregistered origin, waits out the budget, about two and a
-half seconds, before the button appears. The policy case and an unregistered
+refused cookie decides within one round trip. A frame that loads and never
+answers, including on an unregistered origin, waits about two and a half
+seconds after it loads before the button appears, and a frame that never
+loads at all waits up to eight. The policy case and an unregistered
 origin show in the browser console as a violation report. A refused cookie or
 an unanswered frame on a registered origin leaves nothing there
 ([The three modes](#the-three-modes)).

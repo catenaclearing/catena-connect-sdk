@@ -11,3 +11,6 @@ coverage/
 specs/
 .claude/
 CLAUDE.local.md
+e2e/.certs/
+test-results/
+playwright-report/

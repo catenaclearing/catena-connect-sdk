@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { open, preload } from "./index";
 import { mountFrame, openPopup, watchClosed } from "./modes";
-import { resolvedVerdict } from "./probe";
+import { BUDGET_MS, resolvedVerdict } from "./probe";
 import { createSurface } from "./surface";
 
 const LAUNCH_URL = "https://connect.example.com/flow";
@@ -102,6 +102,16 @@ async function answerProbe(origin: string, supported: boolean): Promise<void> {
   window.dispatchEvent(event);
   // The verdict is put into effect on a microtask, not synchronously.
   await vi.advanceTimersByTimeAsync(0);
+}
+
+/**
+ * What a probe the app refuses to be framed for looks like from here: the
+ * browser loads its error page in the frame, which fires `load`, and nothing
+ * ever answers. jsdom fires no `load` of its own, so the test does.
+ */
+async function refuseProbe(): Promise<void> {
+  probeFrame()?.dispatchEvent(new Event("load"));
+  await vi.advanceTimersByTimeAsync(BUDGET_MS);
 }
 
 const handles: Array<{ destroy(): void }> = [];
@@ -243,7 +253,7 @@ describe("launching on a supported verdict", () => {
     const { inviteUrl } = nextInvite();
     handles.push(open({ inviteUrl, embedKey: "pk_unregistered" }));
 
-    await vi.advanceTimersByTimeAsync(2500);
+    await refuseProbe();
 
     expect(flowFrame()).toBeNull();
     expect(continueButton()).not.toBeNull();
@@ -317,14 +327,30 @@ describe("launching on a supported verdict", () => {
 });
 
 describe("the window the flow runs in", () => {
-  it("opens the launch URL under the fixed window name", () => {
+  it("opens the launch URL under a window name of its own", () => {
     // Asserted on the arguments, not on delivery: jsdom opens no window and
     // has no popup blocker, so what this can prove is what we asked for.
     const opened = vi.spyOn(window, "open").mockReturnValue(fakeWindow());
 
     openPopup(LAUNCH_URL);
 
-    expect(opened).toHaveBeenCalledWith(LAUNCH_URL, "catena-connect");
+    const [url, name] = opened.mock.calls[0] ?? [];
+    expect(url).toBe(LAUNCH_URL);
+    expect(String(name)).toMatch(/^catena-connect-[0-9a-z]+-[0-9a-z]+$/);
+  });
+
+  it("never reuses a name, so it never targets a window left over from an earlier page", () => {
+    // A fixed name finds any window already carrying it, including one this
+    // document did not open and so may not navigate. Chrome refuses that
+    // with "Unsafe attempt to initiate navigation" instead of opening the
+    // flow.
+    const opened = vi.spyOn(window, "open").mockReturnValue(fakeWindow());
+
+    openPopup(LAUNCH_URL);
+    openPopup(LAUNCH_URL);
+
+    const [first, second] = opened.mock.calls.map(([, name]) => name);
+    expect(first).not.toBe(second);
   });
 
   it("does not sever the opener", () => {
@@ -561,7 +587,7 @@ describe("launching on an unsupported verdict", () => {
     expect(opened).toHaveBeenCalledTimes(1);
   });
 
-  it("opens the URL built at the call, under the fixed name", async () => {
+  it("opens the URL built at the call, under a name of its own", async () => {
     const opened = vi.spyOn(window, "open").mockReturnValue(fakeWindow());
     const { origin, inviteUrl } = nextInvite();
     handles.push(open({ inviteUrl, embedKey: "pk_test", variant: "card" }));
@@ -574,7 +600,7 @@ describe("launching on an unsupported verdict", () => {
     expect(String(url)).toContain("embed=popup");
     expect(String(url)).toContain("embed_key=pk_test");
     expect(String(url)).toContain("variant=card");
-    expect(name).toBe("catena-connect");
+    expect(String(name)).toMatch(/^catena-connect-/);
   });
 
   it("delivers the flow's events from the window it opened", async () => {
@@ -610,8 +636,8 @@ describe("launching on an unsupported verdict", () => {
   it("brings the open window forward rather than restarting the flow in it", async () => {
     // The affordance stays live because a window can slip behind the page,
     // and this is what the user does about it. Reopening would not do that:
-    // the fixed name finds this window and navigates it, throwing away
-    // whatever the user had already filled in.
+    // it opens a second window with the flow restarted, beside the one
+    // holding whatever the user had already filled in.
     const popup = fakeWindow();
     const opened = vi.spyOn(window, "open").mockReturnValue(popup);
     const { origin, inviteUrl } = nextInvite();
@@ -811,8 +837,8 @@ describe("the user closing the window themselves", () => {
 
   it("moves to the window the user reopened inside the watchdog's gap", async () => {
     // Closing the window and activating again before the next poll is the
-    // race: the browser makes a second window, because the fixed name no
-    // longer refers to a live one. Mistaking it for an ordinary repeat
+    // race: the activation opens a second window, because the first is no
+    // longer live. Mistaking it for an ordinary repeat
     // activation would discard a window the user is looking at, leave the
     // guard pointed at the closed one, and then let the stale watchdog
     // dismiss a launch that is running.
@@ -1122,7 +1148,7 @@ describe("resolving the verdict ahead of a launch", () => {
 
     // Unanswered, as a probe from an origin the key does not cover is: the
     // launch falls back to the window instead of mounting a frame.
-    await vi.advanceTimersByTimeAsync(2500);
+    await refuseProbe();
     expect(flowFrame()).toBeNull();
     expect(continueButton()).not.toBeNull();
   });
