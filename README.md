@@ -75,7 +75,10 @@ output after it.
 
 Every user-facing change lands with a changeset (`pnpm changeset`). On merge to
 `main`, [`release.yml`](.github/workflows/release.yml) opens or updates a
-"Version Packages" PR. Merging that PR publishes the bumped packages. The
+"Version Packages" PR. Merging that PR publishes the bumped packages. If a
+merge to `main` starts no workflow at all, GitHub has dropped the push event:
+run `release.yml` by hand from the Actions tab ("Run workflow" on `main`),
+which does exactly what the push would have. The
 versioning, deprecation and support policy those releases follow is the
 [Versioning and support](packages/connect-sdk/README.md#versioning-and-support)
 section of the package README.

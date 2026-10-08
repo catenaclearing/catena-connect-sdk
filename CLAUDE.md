@@ -119,6 +119,12 @@ Flow:
    (`pnpm build && changeset publish`) and publishes via npm trusted
    publishing (OIDC).
 
+`release.yml` also has a `workflow_dispatch` trigger. GitHub occasionally
+drops the push event for a merge, and then no workflow starts at all; running
+it by hand on `main` does what the push would have. The `npm-bootstrap`
+environment's branch policy allows `main` only, so a manual run from another
+branch cannot publish.
+
 Notes:
 
 - `npm install -g npm@<exact version>` in the job is required — OIDC trusted
