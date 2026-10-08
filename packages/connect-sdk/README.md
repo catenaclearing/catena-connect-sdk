@@ -826,9 +826,9 @@ invitation URL in `frame-src`, or in `child-src` if your policy has no
 frame on the same origin and falls under the same directive. The package
 makes no requests of its own, so no other directive needs to change. A
 refused cookie decides within one round trip. A frame that loads and never
-answers, including on an unregistered origin, waits about two and a half
-seconds after it loads before the button appears, and a frame that never
-loads at all waits up to eight. The policy case and an unregistered
+answers, including on an unregistered origin, waits about six seconds after
+it loads before the button appears, and a frame that never loads at all waits
+up to eight. The policy case and an unregistered
 origin show in the browser console as a violation report. A refused cookie or
 an unanswered frame on a registered origin leaves nothing there
 ([The three modes](#the-three-modes)).

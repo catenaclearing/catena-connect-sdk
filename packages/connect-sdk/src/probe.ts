@@ -85,8 +85,16 @@ export const LOAD_BUDGET_MS = 8000;
  * Counted from `load` rather than from the frame going in, so the document's
  * own delivery no longer comes out of it. A browser that simply refuses the
  * cookie is answered promptly on its own merits and never reaches this timer.
+ *
+ * Six seconds because the round trip after `load` is two requests, and on a
+ * network that adds latency to every request rather than only to the first
+ * contact (a TLS-inspecting proxy, or Chrome's Slow 3G profile at about two
+ * seconds a request) those two alone take four. At 2.5 seconds such a browser
+ * framed the flow perfectly well and was still sent to the window. The cost
+ * is paid only by a frame that loads and never answers, an origin the key
+ * does not cover among them, which now waits this long for its window.
  */
-export const BUDGET_MS = 2500;
+export const BUDGET_MS = 6000;
 
 /**
  * What this page has already learned, and what it is still learning.

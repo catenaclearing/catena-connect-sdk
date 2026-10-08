@@ -39,8 +39,13 @@ const CONNECT_PORT = 4602;
 const PARTNER = `https://localhost:${PARTNER_PORT}`;
 const CONNECT = `https://127.0.0.1:${CONNECT_PORT}`;
 
-/** The real probe page's own budget for its round trip. */
-const PAGE_BUDGET_MS = 1500;
+/**
+ * The real probe page's own budget for its round trip. When it runs out the
+ * page aborts the requests and posts nothing, as the real one does: running
+ * out of time says the network was slow, not that the cookie was refused, and
+ * a posted `false` would be remembered as a refusal.
+ */
+const PAGE_BUDGET_MS = 5000;
 
 /**
  * A throwaway self-signed certificate covering both hosts. `Partitioned`
@@ -81,6 +86,7 @@ function certificate() {
  * - `docOnce`: ms to hold the document on the first request for this key
  *   only, so a second launch finds a warm, fast network.
  * - `set`, `check`: ms to hold each endpoint.
+ * - `setOnce`: ms to hold `set` on the first request for this key only.
  * - `cookie=refused`: `set` sends no cookie, as a browser refusing it would
  *   leave things.
  * - `silent`: the page loads and never reports.
@@ -96,6 +102,9 @@ function scenario(raw) {
 
 /** How many times each scenario's probe document has been asked for. */
 const documentHits = new Map();
+
+/** How many times each scenario's `set` has been asked for. */
+const setHits = new Map();
 
 /** No scenario holds a response longer than this, whatever the key asks. */
 const MAX_DELAY_MS = 30_000;
@@ -131,7 +140,8 @@ function probePage(raw, silent) {
   };
   var controller = new AbortController();
   var options = { credentials: "include", cache: "no-store", signal: controller.signal };
-  var timer = setTimeout(function () { controller.abort(); post(false); }, ${PAGE_BUDGET_MS});
+  var timedOut = false;
+  var timer = setTimeout(function () { timedOut = true; controller.abort(); }, ${PAGE_BUDGET_MS});
   fetch("/embed/probe/set?${query}", options)
     .then(function (r) { return r.json(); })
     .then(function (m) {
@@ -139,7 +149,7 @@ function probePage(raw, silent) {
     })
     .then(function (r) { return r.json(); })
     .then(function (b) { post(b.arrived === true); })
-    .catch(function () { post(false); })
+    .catch(function () { if (!timedOut) post(false); })
     .then(function () { clearTimeout(timer); });
 })();
 </script></body></html>`;
@@ -176,7 +186,11 @@ function connect(req, res) {
   }
 
   if (url.pathname === "/embed/probe/set") {
-    const s = scenario(url.searchParams.get("s"));
+    const raw = url.searchParams.get("s") ?? "";
+    const s = scenario(raw);
+    const hits = (setHits.get(raw) ?? 0) + 1;
+    setHits.set(raw, hits);
+    const delay = hits === 1 && s.setOnce ? s.setOnce : (s.set ?? 0);
     const token = crypto.randomUUID();
     const headers =
       s.cookie === "refused"
@@ -184,7 +198,7 @@ function connect(req, res) {
         : {
             "set-cookie": `embed_probe=${token}; SameSite=None; Secure; Partitioned; Path=/embed/probe; Max-Age=10`,
           };
-    after(s.set ?? 0, req, () =>
+    after(delay, req, () =>
       send(200, "application/json", JSON.stringify({ token }), headers)
     );
     return;

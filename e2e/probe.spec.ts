@@ -163,8 +163,45 @@ test.describe("a slow network", () => {
   );
 });
 
+test.describe("a network that is slow on every request", () => {
+  test(
+    "frames the flow when each request takes two seconds",
+    FRAMED,
+    async ({ page }) => {
+      // Chrome's Slow 3G profile adds about two seconds to every request,
+      // as a heavy TLS-inspecting proxy can. The page, `set` and `check`
+      // each pay it, so the round trip after `load` alone takes four.
+      await partnerPage(page);
+      const outcome = await launch(page, key("doc=2000;set=2000;check=2000"));
+
+      expect(outcome.mode).toBe("frame");
+    }
+  );
+
+  test(
+    "checks again after the page's own limit runs out",
+    FRAMED,
+    async ({ page }) => {
+      // A `set` that outlasts the page's own budget is slowness, not a
+      // refused cookie. The page stays silent rather than posting `false`,
+      // so the SDK times out, remembers nothing, and the next launch frames.
+      await partnerPage(page);
+      const embedKey = key("setOnce=hang");
+
+      expect((await launch(page, embedKey)).mode).toBe("continue");
+
+      await page.evaluate(() => {
+        (window as unknown as { sdk: { destroy(): void } }).sdk.destroy();
+      });
+      const second = await launch(page, embedKey);
+
+      expect(second.mode).toBe("frame");
+    }
+  );
+});
+
 test.describe("a probe that never answers", () => {
-  test("gives up on a loaded page about 2.5 seconds after it loads", async ({
+  test("gives up on a loaded page about six seconds after it loads", async ({
     page,
   }) => {
     // What an origin the embed key does not cover looks like: the frame
@@ -173,8 +210,8 @@ test.describe("a probe that never answers", () => {
     const outcome = await launch(page, key("silent"));
 
     expect(outcome.mode).toBe("continue");
-    expect(outcome.ms).toBeGreaterThanOrEqual(2400);
-    expect(outcome.ms).toBeLessThan(6000);
+    expect(outcome.ms).toBeGreaterThanOrEqual(5800);
+    expect(outcome.ms).toBeLessThan(10000);
   });
 
   test("gives up on a page that never arrives after about eight seconds", async ({
