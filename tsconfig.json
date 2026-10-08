@@ -29,6 +29,8 @@
     "packages/*/src/**/*.tsx",
     "packages/*/tsup.config.ts",
     "vitest.config.ts",
+    "playwright.config.ts",
+    "e2e/**/*.ts",
     "scripts/**/*.mjs"
   ]
 }

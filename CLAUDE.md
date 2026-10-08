@@ -47,6 +47,7 @@ packages/
     src/              # Source; src/*.test.ts are the Vitest tests
     dist/             # tsup output (gitignored, built in CI)
   connect-sdk-react/  # @catenaclearing/connect-sdk-react — hook, component and resume hook over the core
+e2e/                  # Playwright: the iframe check in real browsers, slowable stand-in connect origin
 defensive/            # Typosquat placeholder packages — NOT workspace members
 scripts/
   squat-watch.mjs     # Daily npm registry scan
@@ -68,11 +69,14 @@ and `pnpm -r` never touch it. Do not add it to the workspace.
 | `pnpm tsc` | TypeScript type-check (no emit) |
 | `pnpm test` | Vitest |
 | `pnpm build` | tsup build for every workspace package |
+| `pnpm test:e2e` | Playwright: the iframe check in real browsers against a slowable stand-in connect origin (`e2e/`); needs `pnpm build` first |
 | `pnpm changeset` | Author a changeset |
 
 After any code change run `pnpm check`, `pnpm tsc`, `pnpm test`, `pnpm build` —
-these are exactly the four steps `ci.yml` runs, in that order. If `check`
-reports fixable issues, run `pnpm check:fix` and re-validate all four.
+these are exactly the four steps `ci.yml`'s `verify` job runs, in that order.
+Its `e2e` job then builds and runs `pnpm test:e2e`; run that too after changing
+the probe, the modes or anything timing-related. If `check` reports fixable
+issues, run `pnpm check:fix` and re-validate all four.
 
 Node `^24.15 || >=26` (`.nvmrc`), pnpm via corepack (`packageManager` pins the
 version). The 25 line is deliberately excluded rather than merely untested —
