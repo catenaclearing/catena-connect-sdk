@@ -103,11 +103,13 @@ const MAX_DELAY_MS = 30_000;
 /** Hold a response for `ms`, giving up quietly if the browser goes away. */
 function after(ms, req, send) {
   if (ms === "hang") return;
-  let delay = Number(ms) || 0;
-  // A comparison rather than `Math.min`, which code scanning does not read as
-  // a bound.
-  if (delay > MAX_DELAY_MS) delay = MAX_DELAY_MS;
-  const timer = setTimeout(send, delay);
+  const requested = Number(ms) || 0;
+  // The timer sits inside the comparison, which is the shape code scanning
+  // reads as a bound; a clamped copy of the value is not.
+  const timer =
+    requested <= MAX_DELAY_MS
+      ? setTimeout(send, requested)
+      : setTimeout(send, MAX_DELAY_MS);
   req.on("close", () => clearTimeout(timer));
 }
 
