@@ -260,14 +260,23 @@ export interface Surface {
  * which keeps an inline mount from being a special case anywhere else.
  */
 export function createSurface(container?: HTMLElement): Surface {
-  const host = document.createElement("div");
+  // The container's own document, which is not always the one this package
+  // was loaded in: a page can call us from its top window and hand over an
+  // element inside a same-origin frame. Everything is built from that
+  // document, because a constructed stylesheet only applies in the document
+  // that made it. Built here and moved across, the host is adopted into the
+  // frame's document and the browser drops the sheet without a word, leaving
+  // an unstyled frame at its default 300 by 150.
+  const doc = container?.ownerDocument ?? document;
+
+  const host = doc.createElement("div");
   const shadow = host.attachShadow({ mode: "open" });
 
-  applyStyles(shadow);
+  applyStyles(shadow, doc);
 
   const overlay = container === undefined;
 
-  const root = document.createElement("div");
+  const root = doc.createElement("div");
   root.className = overlay ? "root overlay" : "root";
   root.tabIndex = -1;
 
@@ -284,13 +293,13 @@ export function createSurface(container?: HTMLElement): Surface {
   // down. Otherwise the user is dumped at the top of the host page.
   const previouslyFocused = overlay ? activeElement() : null;
 
-  const panel = document.createElement("div");
+  const panel = doc.createElement("div");
   panel.className = "panel";
 
   // A live region, in the document before it has anything to announce.
   // Inserting an already-populated one is unreliable across screen readers:
   // the region has to be there for the change to register as a change.
-  const status = document.createElement("div");
+  const status = doc.createElement("div");
   status.className = "status";
   status.setAttribute("role", "status");
   panel.append(status);
@@ -430,7 +439,7 @@ export function createSurface(container?: HTMLElement): Surface {
       status.textContent = CONTINUE_MESSAGE;
       panel.classList.add("offered");
 
-      const button = document.createElement("button");
+      const button = doc.createElement("button");
       button.type = "button";
       button.className = "continue";
       button.textContent = CONTINUE_LABEL;
@@ -530,9 +539,12 @@ function isFocusable(element: Element | null): element is Element & {
  * The `<style>` fallback is for browsers without constructable sheets, which
  * are older than anything frame mode supports anyway.
  */
-function applyStyles(shadow: ShadowRoot): void {
+function applyStyles(shadow: ShadowRoot, doc: Document): void {
   try {
-    const sheet = new CSSStyleSheet();
+    // That window's constructor, not ours: a sheet constructed in one
+    // document cannot be adopted by a shadow root in another.
+    const Sheet = doc.defaultView?.CSSStyleSheet ?? CSSStyleSheet;
+    const sheet = new Sheet();
     sheet.replaceSync(STYLES);
     shadow.adoptedStyleSheets = [sheet];
     return;
@@ -540,7 +552,7 @@ function applyStyles(shadow: ShadowRoot): void {
     // Fall through to the element.
   }
 
-  const style = document.createElement("style");
+  const style = doc.createElement("style");
   style.textContent = STYLES;
   shadow.append(style);
 }

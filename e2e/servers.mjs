@@ -227,6 +227,7 @@ function connect(req, res) {
 const partnerPage = `<!doctype html>
 <html><head><title>Partner (test)</title></head>
 <body><h1>Partner page</h1><div id="log"></div>
+<iframe id="caller-frame" src="/frame" style="width:600px;height:520px;border:0"></iframe>
 <script type="module">
   import { open, preload } from "/sdk/index.js";
   window.connectOrigin = ${JSON.stringify(CONNECT)};
@@ -241,6 +242,19 @@ const partnerPage = `<!doctype html>
         onClose: () => window.events.push("close"),
       });
     },
+    // The same launch into a container that lives in a frame of this page,
+    // the way an older partner app with its modal in a frame calls it.
+    openInFrame(embedKey) {
+      window.events = [];
+      const frame = document.getElementById("caller-frame");
+      window.handle = open({
+        inviteUrl: window.connectOrigin + "/i/test",
+        embedKey,
+        container: frame.contentDocument.getElementById("modal"),
+        onOpen: () => window.events.push("open"),
+        onClose: () => window.events.push("close"),
+      });
+    },
     destroy() {
       window.handle?.destroy();
     },
@@ -251,11 +265,22 @@ const partnerPage = `<!doctype html>
   window.ready = true;
 </script></body></html>`;
 
+/** A frame of the partner's own, holding the modal a launch can mount in. */
+const partnerFrame = `<!doctype html>
+<html><body style="margin:0">
+<div id="modal" style="width:576px;height:480px"></div>
+</body></html>`;
+
 function partner(req, res) {
   const url = new URL(req.url, PARTNER);
   if (url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/html" });
     res.end(partnerPage);
+    return;
+  }
+  if (url.pathname === "/frame") {
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(partnerFrame);
     return;
   }
   if (url.pathname.startsWith("/sdk/")) {

@@ -196,6 +196,11 @@ own overlay. Behavior is otherwise identical, including on the fallback modes.
 The package only removes what it created, so your container is left as it was
 found.
 
+The container can live in a different document from the one the package runs
+in, such as a modal inside a same-origin frame of your page, with `open()`
+called from the top window. The flow is built in the container's document and
+its events are delivered either way.
+
 ### Presentation options
 
 `variant`, `theme`, `brandColor`, `logoUrl` and `logoUrlDark` control how the

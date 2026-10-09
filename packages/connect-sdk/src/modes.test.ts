@@ -1377,3 +1377,105 @@ describe("a probe outlives the launch that was torn down while it ran", () => {
     expect(flowFrame()).not.toBeNull();
   });
 });
+
+describe("a container in another document", () => {
+  // A caller can run us from their top window and hand over an element inside
+  // a same-origin frame of theirs. Built in our document and moved across,
+  // the surface lost its constructed stylesheet in a real browser and the
+  // flow showed as an unstyled 300 by 150 frame; and the flow's messages,
+  // posted to the frame's parent, landed on a window nobody listened to.
+
+  /** A same-origin frame in the page, and a container inside it. */
+  function frameContainer(): { win: Window; container: HTMLElement } {
+    const outer = document.createElement("iframe");
+    outer.className = "caller-frame";
+    document.body.append(outer);
+    const win = outer.contentWindow as Window;
+    const container = win.document.createElement("div");
+    win.document.body.append(container);
+    return { win, container };
+  }
+
+  /** The probe, picked out from the caller's own frame by its address. */
+  async function answerProbeAmongFrames(origin: string): Promise<void> {
+    const probe = [...document.body.querySelectorAll("iframe")].find((f) =>
+      f.src.includes("/embed/probe")
+    );
+    const event = new MessageEvent("message", {
+      data: verdict(true),
+      origin,
+    });
+    Object.defineProperty(event, "source", {
+      value: probe?.contentWindow,
+      configurable: true,
+    });
+    window.dispatchEvent(event);
+    await vi.advanceTimersByTimeAsync(0);
+  }
+
+  it("styles the surface with a sheet the container's document can adopt", () => {
+    const { win, container } = frameContainer();
+    createSurface(container);
+
+    const sheets = container.firstElementChild?.shadowRoot?.adoptedStyleSheets;
+    const Sheet = (win as unknown as { CSSStyleSheet: typeof CSSStyleSheet })
+      .CSSStyleSheet;
+    expect(sheets).toHaveLength(1);
+    expect(sheets?.[0]).toBeInstanceOf(Sheet);
+  });
+
+  it("hears the flow on the container's window", async () => {
+    const { win, container } = frameContainer();
+    const { origin, inviteUrl } = nextInvite();
+    const onOpen = vi.fn();
+    const onSuccess = vi.fn();
+    handles.push(
+      open({ inviteUrl, embedKey: "pk_test", container, onOpen, onSuccess })
+    );
+    await answerProbeAmongFrames(origin);
+    const source =
+      container.firstElementChild?.shadowRoot?.querySelector(
+        "iframe"
+      )?.contentWindow;
+
+    for (const event of ["open", "success"]) {
+      const message = new MessageEvent("message", {
+        data: { source: "catena-connect", version: "1", event },
+        origin,
+      });
+      Object.defineProperty(message, "source", {
+        value: source,
+        configurable: true,
+      });
+      win.dispatchEvent(message);
+    }
+
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops listening on the container's window when torn down", async () => {
+    const { win, container } = frameContainer();
+    const { origin, inviteUrl } = nextInvite();
+    const onOpen = vi.fn();
+    const handle = open({ inviteUrl, embedKey: "pk_test", container, onOpen });
+    await answerProbeAmongFrames(origin);
+    const source =
+      container.firstElementChild?.shadowRoot?.querySelector(
+        "iframe"
+      )?.contentWindow;
+
+    handle.destroy();
+    const message = new MessageEvent("message", {
+      data: { source: "catena-connect", version: "1", event: "open" },
+      origin,
+    });
+    Object.defineProperty(message, "source", {
+      value: source,
+      configurable: true,
+    });
+    win.dispatchEvent(message);
+
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+});
