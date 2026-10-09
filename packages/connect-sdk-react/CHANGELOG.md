@@ -1,5 +1,17 @@
 # @catenaclearing/connect-sdk-react
 
+## 1.0.0-beta.2
+
+### Minor Changes
+
+- 4cbf0d0: Add `onConnectionDeleted`, called with `{ connectionId }` when the fleet deletes a connection from the flow. Like `onConnection` it does not end the flow. Use it to drop an id you stored from an earlier `onConnection` without waiting for your webhooks. The `ConnectConnectionDeletedEvent` type is exported from both packages.
+
+### Patch Changes
+
+- Updated dependencies [efcbc77]
+- Updated dependencies [4cbf0d0]
+  - @catenaclearing/connect-sdk@1.0.0-beta.4
+
 ## 1.0.0-beta.1
 
 ### Patch Changes
