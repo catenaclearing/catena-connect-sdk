@@ -395,14 +395,15 @@ arrive on all three, so one set of handlers covers every path. The exception
 is the redirect mode: it navigates away from the page holding your callbacks,
 and `resume()` delivers only the outcome you declare, followed by `onClose`.
 
-**Iframe.** The surface renders immediately with a loading state while
-the package checks whether this browser will run the flow in an iframe. If
-it will, the iframe mounts in the surface behind that loading state, which
+**Iframe.** The surface renders immediately with a loading state while the
+package checks whether this browser will run the flow in an iframe. If it
+will, the iframe mounts in the surface behind that loading state, which
 stays up until the flow reports it is ready (the same message that becomes
-`onOpen`). If that report never comes, the iframe is shown three seconds after
-its page loads, so the user is not left on the loading state. No warm-up call, no popup, no user gesture needed. On a slow
-network the check can take a few seconds to arrive, and the loading state
-waits for it rather than falling back early.
+`onOpen`). If that report never comes, the iframe is shown three seconds
+after its page loads, so the user is not left on the loading state. No
+warm-up call, no popup, no user gesture needed. On a slow network the check
+can take a few seconds to arrive, and the loading state waits for it rather
+than falling back early.
 
 **Popup.** The flow needs a cookie in a cross-site context, and not every
 browser will send one. Where the iframe check fails, the surface shows a
