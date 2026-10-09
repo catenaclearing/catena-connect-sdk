@@ -17,10 +17,18 @@ import { WINDOW_NAME } from "./wire";
 const FRAME_ALLOW = "clipboard-write";
 
 /**
- * Replace whatever the surface is showing with the flow, in a frame.
+ * How long a loaded frame waits for the flow's `open` before it is shown
+ * without one. The app posts it as it mounts, which is moments after the
+ * document loads, so this only runs out when the message is not coming.
+ */
+export const REVEAL_GRACE_MS = 3000;
+
+/**
+ * Replace whatever the surface is showing with the flow, in a frame, held
+ * behind the loading state until the caller reveals it.
  *
  * Returns the frame so the caller can take its window for the message guard,
- * and tear it down later.
+ * watch it load, and tear it down later.
  */
 export function mountFrame(
   surface: Surface,
@@ -42,6 +50,7 @@ export function mountFrame(
   frame.setAttribute("allow", FRAME_ALLOW);
 
   surface.mount.append(frame);
+  surface.hold();
   return frame;
 }
 

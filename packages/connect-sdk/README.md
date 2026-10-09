@@ -316,7 +316,7 @@ checking state first.
 The one thing it leaves alone is a capability probe already in flight. The
 probe belongs to the page, not to the launch (`preload()` runs one with no
 launch at all). It cleans itself up within its own timeout, and its result is
-kept so the next launch with the same embed key skips the loading state.
+kept so the next launch with the same embed key skips the check.
 
 ### One flow at a time
 
@@ -395,12 +395,15 @@ arrive on all three, so one set of handlers covers every path. The exception
 is the redirect mode: it navigates away from the page holding your callbacks,
 and `resume()` delivers only the outcome you declare, followed by `onClose`.
 
-**Iframe.** The surface renders immediately with a brief loading state
-while the package checks whether this browser will run the flow in an
-iframe. If it will, the iframe mounts in the surface. No warm-up call, no
-popup, no user gesture needed. On a slow network the check can take a few
-seconds to arrive, and the loading state waits for it rather than falling
-back early.
+**Iframe.** The surface renders immediately with a loading state while the
+package checks whether this browser will run the flow in an iframe. If it
+will, the iframe mounts in the surface behind that loading state, which
+stays up until the flow reports it is ready (the same message that becomes
+`onOpen`). If that report never comes, the iframe is shown three seconds
+after its page loads, so the user is not left on the loading state. No
+warm-up call, no popup, no user gesture needed. On a slow network the check
+can take a few seconds to arrive, and the loading state waits for it rather
+than falling back early.
 
 **Popup.** The flow needs a cookie in a cross-site context, and not every
 browser will send one. Where the iframe check fails, the surface shows a
@@ -513,13 +516,14 @@ import { preload } from "@catenaclearing/connect-sdk";
 preload({ inviteUrl, embedKey });
 ```
 
-Runs the iframe check early so the next `open()` chooses its mode with no
-loading state. `embedKey` is optional. Pass the same key you will pass to
+Runs the iframe check early so the next `open()` chooses its mode without
+waiting for it. `embedKey` is optional. Pass the same key you will pass to
 `open()` so the warmed check applies to the launch. Without it the check still
 runs, but `open()` repeats it with the key.
 
 It is an optimization, not a requirement. `open()` behaves the same whether or
-not you call it; the only difference is how long the loading state lasts. That
+not you call it; the only difference is how long the loading state lasts
+before the flow starts loading. That
 is usually one network round trip, but the first contact with the connect
 origin can take a few seconds on a slow network or behind a corporate proxy.
 Calling `preload()` when the page holding your button loads moves that wait

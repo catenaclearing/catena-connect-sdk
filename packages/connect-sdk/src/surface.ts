@@ -84,6 +84,57 @@ const STYLES = `
     color: #555555;
   }
 
+  /* The loading state stacks a spinner above its sentence. The sentence stays
+     for a screen reader, and for anyone with motion reduced, who is shown the
+     ring standing still. */
+  .panel.loading .status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .panel.loading .status::before {
+    content: "";
+    width: 24px;
+    height: 24px;
+    box-sizing: border-box;
+    border: 2px solid #e0e0e0;
+    border-top-color: #555555;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel.loading .status::before {
+      animation: none;
+    }
+  }
+
+  /* A held frame is mounted and loading, but not shown: the loading state
+     sits over the space it fills until the flow says it is ready. Hidden
+     rather than removed or left unmounted, because a frame has to be in the
+     document to load, and the point is that it loads behind the spinner. */
+  .panel.held {
+    position: relative;
+  }
+
+  .panel.held .frame {
+    visibility: hidden;
+  }
+
+  .panel.held .status {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+  }
+
   /* The affordance stacks its sentence above its control, where the loading
      state is a single centered line. */
   .panel.offered {
@@ -150,6 +201,9 @@ const STYLES = `
   }
 `;
 
+/** What the loading state says beside its spinner. */
+const LOADING_MESSAGE = "Loading…";
+
 /**
  * What the user is told before a window opens.
  *
@@ -171,6 +225,17 @@ export interface Surface {
   readonly mount: HTMLElement;
   /** Show the loading state. What a launch renders while it resolves. */
   showLoading(message?: string): void;
+  /**
+   * Keep the loading state over what was just put in the mount point, which
+   * stays hidden until `reveal()`. A frame is blank until the page inside it
+   * has drawn, and that takes seconds, not the instant mounting it does.
+   */
+  hold(): void;
+  /**
+   * Take the loading state off a held mount point. Does nothing when nothing
+   * is held, so it is safe to call on every signal that the flow is ready.
+   */
+  reveal(): void;
   /**
    * Show what is about to happen and give the user something to click.
    *
@@ -328,16 +393,31 @@ export function createSurface(container?: HTMLElement): Surface {
    */
   const reset = (): void => {
     panel.replaceChildren(status);
-    panel.classList.remove("offered");
+    panel.classList.remove("offered", "loading", "held");
     status.textContent = "";
   };
 
   return {
     mount: panel,
 
-    showLoading(message = "Loading…") {
+    showLoading(message = LOADING_MESSAGE) {
       if (destroyed) return;
+      panel.classList.add("loading");
       status.textContent = message;
+    },
+
+    hold() {
+      if (destroyed) return;
+      panel.classList.add("loading", "held");
+      status.textContent = LOADING_MESSAGE;
+    },
+
+    reveal() {
+      if (destroyed || !panel.classList.contains("held")) return;
+      panel.classList.remove("held", "loading");
+      // Emptied rather than reworded: the flow announces itself, and a region
+      // still saying "Loading…" over it would be untrue.
+      status.textContent = "";
     },
 
     showContinue(onActivate) {

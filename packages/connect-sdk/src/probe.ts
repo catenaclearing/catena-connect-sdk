@@ -119,7 +119,8 @@ function cacheKey(origin: string, embedKey: string | undefined): string {
 
 /**
  * The verdict this page already holds, without starting a probe to find out.
- * This is what lets a launch skip the loading state.
+ * This is what lets a launch skip the probe, and, when the answer is
+ * unsupported, the loading state with it.
  */
 export function resolvedVerdict(
   origin: string,
