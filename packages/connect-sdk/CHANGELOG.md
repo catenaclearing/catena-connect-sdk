@@ -1,5 +1,15 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.4
+
+### Minor Changes
+
+- 4cbf0d0: Add `onConnectionDeleted`, called with `{ connectionId }` when the fleet deletes a connection from the flow. Like `onConnection` it does not end the flow. Use it to drop an id you stored from an earlier `onConnection` without waiting for your webhooks. The `ConnectConnectionDeletedEvent` type is exported from both packages.
+
+### Patch Changes
+
+- efcbc77: The iframe mode keeps its loading state, now with a spinner, until the flow reports it is ready, instead of removing it as the iframe mounts. Users no longer see a blank surface for the few seconds the flow takes to draw. If the flow never reports, the iframe is shown three seconds after it loads.
+
 ## 1.0.0-beta.3
 
 ### Patch Changes
