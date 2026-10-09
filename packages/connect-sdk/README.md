@@ -20,18 +20,20 @@ The core package has no runtime dependencies.
 
 ## What you need
 
-- **An invitation URL.** The link on an invitation you create in the Catena
-  dashboard or through the Catena API. The origin this package trusts is
-  derived from it.
-- **An embed key.** Issued by Catena. It is valid only for the origins
-  registered against it, and the branding options apply only when it resolves.
-- **A registered origin.** Every page that launches the flow must be on an
-  origin registered against your embed key. You give Catena the origins and
-  Catena registers them. Until an origin is registered, the flow does not
-  render in an iframe on it. The surface offers the popup instead, where the
-  flow runs but its messages never reach your page. Registered origins must
-  be `https`, or `http` on `localhost`, and the scheme, host and port must
-  match exactly: `www` and the apex are different origins.
+**An invitation URL.** The link on an invitation you create in the Catena
+dashboard or through the Catena API. The origin this package trusts is
+derived from it.
+
+**An embed key.** Issued by Catena. It is valid only for the origins
+registered against it, and the branding options apply only when it resolves.
+
+**A registered origin.** Every page that launches the flow must be on an
+origin registered against your embed key. You give Catena the origins and
+Catena registers them. Until an origin is registered, the flow does not
+render in an iframe on it. The surface offers the popup instead, where the
+flow runs but its messages never reach your page. Registered origins must
+be `https`, or `http` on `localhost`, and the scheme, host and port must
+match exactly: `www` and the apex are different origins.
 
 You create invitations yourself, in the Catena dashboard or through the
 Catena API. Catena issues the embed key and registers the origins you provide.
@@ -228,18 +230,19 @@ new one.
 
 Which layout the flow renders.
 
-- `"full"`, the default, is the flow as it renders on its own: a background,
-  a navigation header carrying the logo, a theme toggle, help and Disconnect,
-  and the connection card with the "Secure connection powered by Catena"
-  attribution below it.
-- `"card"` is the connection card alone, with the attribution moved inside
-  it. It fills whatever it is mounted in edge to edge, so the card's own
-  background is all you see: no page background behind it and no border or
-  rounded corners of its own. The surface around it supplies the frame. The
-  header goes with everything else, so there is no theme toggle and no
-  Disconnect. Help moves into the card, at the top right of each screen. The
-  logo still appears on the invite consent card, which
-  opens an invited session in either variant.
+`"full"`, the default, is the flow as it renders on its own: a background,
+a navigation header carrying the logo, a theme toggle, help and Disconnect,
+and the connection card with the "Secure connection powered by Catena"
+attribution below it.
+
+`"card"` is the connection card alone, with the attribution moved inside
+it. It fills whatever it is mounted in edge to edge, so the card's own
+background is all you see: no page background behind it and no border or
+rounded corners of its own. The surface around it supplies the frame. The
+header goes with everything else, so there is no theme toggle and no
+Disconnect. Help moves into the card, at the top right of each screen. The
+logo still appears on the invite consent card, which
+opens an invited session in either variant.
 
 The package's own overlay is a rounded panel of at most 460 by 720 pixels,
 and `"card"` is the fit for it and for a `container` you have already styled.
@@ -392,26 +395,28 @@ arrive on all three, so one set of handlers covers every path. The exception
 is the redirect mode: it navigates away from the page holding your callbacks,
 and `resume()` delivers only the outcome you declare, followed by `onClose`.
 
-1. **Iframe.** The surface renders immediately with a brief loading state
-   while the package checks whether this browser will run the flow in an
-   iframe. If it will, the iframe mounts in the surface. No warm-up call, no
-   popup, no user gesture needed. On a slow network the check can take a few
-   seconds to arrive, and the loading state waits for it rather than falling
-   back early.
-2. **Popup.** The flow needs a cookie in a cross-site context, and not every
-   browser will send one. Where the iframe check fails, the surface shows a
-   button instead, and clicking it opens the flow in a popup window. One
-   extra click, on those browsers only.
-3. **Redirect.** If the browser blocks the popup too, the flow navigates the
-   browser tab your page is in to the connect origin and runs there,
-   full-page. Your page and its callbacks are
-   gone. If your invitation has a `success_redirect_url` and
-   `failure_redirect_url`, the flow returns to one of them, and `resume()` on
-   that page delivers the outcome. Without them the flow stays on its last
-   screen, and your webhooks are the only record. The URLs are optional, and
-   only the redirect path relies on them: the iframe and popup modes report
-   the outcome by message. A popup whose launching page has closed or
-   navigated away also falls back to them.
+**Iframe.** The surface renders immediately with a brief loading state
+while the package checks whether this browser will run the flow in an
+iframe. If it will, the iframe mounts in the surface. No warm-up call, no
+popup, no user gesture needed. On a slow network the check can take a few
+seconds to arrive, and the loading state waits for it rather than falling
+back early.
+
+**Popup.** The flow needs a cookie in a cross-site context, and not every
+browser will send one. Where the iframe check fails, the surface shows a
+button instead, and clicking it opens the flow in a popup window. One
+extra click, on those browsers only.
+
+**Redirect.** If the browser blocks the popup too, the flow navigates the
+browser tab your page is in to the connect origin and runs there,
+full-page. Your page and its callbacks are
+gone. If your invitation has a `success_redirect_url` and
+`failure_redirect_url`, the flow returns to one of them, and `resume()` on
+that page delivers the outcome. Without them the flow stays on its last
+screen, and your webhooks are the only record. The URLs are optional, and
+only the redirect path relies on them: the iframe and popup modes report
+the outcome by message. A popup whose launching page has closed or
+navigated away also falls back to them.
 
 Popups must be allowed on the launching page, because your page opens the
 popup-mode window.
@@ -445,14 +450,15 @@ credentials.
 
 Two things to plan for:
 
-- **Popups must be allowed on the launching page.** A kiosk or managed
-  browser that blocks them everywhere leaves the user on a message saying the
-  sign-in window was blocked, with the form intact to try again once the
-  setting allows it. Nothing navigates and no callback fires.
-- **This is not the popup mode.** The popup mode opens the whole flow in a
-  window because the browser refused the iframe. The provider window opens
-  inside a flow that is already running, and only for a provider that signs in
-  on its own site.
+**Popups must be allowed on the launching page.** A kiosk or managed
+browser that blocks them everywhere leaves the user on a message saying the
+sign-in window was blocked, with the form intact to try again once the
+setting allows it. Nothing navigates and no callback fires.
+
+**This is not the popup mode.** The popup mode opens the whole flow in a
+window because the browser refused the iframe. The provider window opens
+inside a flow that is already running, and only for a provider that signs in
+on its own site.
 
 ## `resume(options)`
 
@@ -535,29 +541,34 @@ Each of these is a real outcome, not an error to surface. Your connection
 webhooks remain the record. The absence of a callback is never proof that
 nothing happened.
 
-1. **Unregistered origin.** The page you embed from is not registered against
-   your embed key. The flow does not render in a frame, so the surface falls
-   back to the popup. The flow runs there, but its messages are addressed
-   elsewhere and the browser drops them. This is the origin check doing its
-   job.
-2. **Revoked or unresolvable embed key.** Deliberately indistinguishable from
-   the above: the surface falls back to the popup, and the flow runs there
-   with no origins to post to, so it sends nothing. You cannot tell them
-   apart, and neither can an attacker.
-3. **Severed opener.** Opening the flow through a link with `noopener` removes
-   the channel the completion travels on. The user still finishes. The package
-   never opens with `noopener`; this applies only to a window or link you open
-   yourself.
-4. **Redirect mode with no `resume()` call.** The flow completed in your tab
-   and nothing was listening when it came back.
-5. **A `resume()` destination on another origin.** The outcome crosses the
-   navigation in a `sessionStorage` record, and that is partitioned by origin
-   as well as by tab. Both destination pages must be on the same origin as the
-   page that launched, or `resume()` emits nothing.
-6. **The user abandoned the surface.** No terminal event was produced because
-   the flow never reached one. In a frame, a user who connects and never
-   presses **Done** produces `onConnection` but no `onSuccess`. The connection
-   is real.
+**Unregistered origin.** The page you embed from is not registered against
+your embed key. The flow does not render in a frame, so the surface falls
+back to the popup. The flow runs there, but its messages are addressed
+elsewhere and the browser drops them. This is the origin check doing its
+job.
+
+**Revoked or unresolvable embed key.** Deliberately indistinguishable from
+the above: the surface falls back to the popup, and the flow runs there
+with no origins to post to, so it sends nothing. You cannot tell them
+apart, and neither can an attacker.
+
+**Severed opener.** Opening the flow through a link with `noopener` removes
+the channel the completion travels on. The user still finishes. The package
+never opens with `noopener`; this applies only to a window or link you open
+yourself.
+
+**Redirect mode with no `resume()` call.** The flow completed in your tab
+and nothing was listening when it came back.
+
+**A `resume()` destination on another origin.** The outcome crosses the
+navigation in a `sessionStorage` record, and that is partitioned by origin
+as well as by tab. Both destination pages must be on the same origin as the
+page that launched, or `resume()` emits nothing.
+
+**The user abandoned the surface.** No terminal event was produced because
+the flow never reached one. In a frame, a user who connects and never
+presses **Done** produces `onConnection` but no `onSuccess`. The connection
+is real.
 
 One caveat in the other direction: a callback means a redirected launch left
 this tab recently, not that this page was reached from the flow. An abandoned
@@ -770,26 +781,31 @@ the redirect URL it returns to, if the invitation has them, is the signal.
 
 ### What a plain integration gives up
 
-- **No cookie probe and no fallback.** The package checks whether the browser
-  will send the flow's cookie in a frame and falls back to a window or a
-  redirect when it will not. A plain frame in a browser that refuses
-  third-party cookies shows the flow failing to sign in instead. If you cannot
-  vouch for the browsers, open a window with `embed=popup` or navigate the tab
-  with `embed=redirect`.
-- **No single-launch guard.** Two frames run two flows. Opening a window under
-  the name `catena-connect` each time keeps a second `window.open()` on the
-  first window, but restarts the flow in it.
-- **No de-duplication of the outcome.** A second press of the button posts
-  the outcome again, and your listener has to keep only the first.
-- **No teardown of the window.** The package closes it on `destroy()`. A
-  plain integration closes it itself.
-- **No `resume()`.** Which destination page was reached says how the flow
-  ended, and your webhooks carry the detail, as they do on the package's
-  redirect path. Without a record written before the navigation, though, a
-  destination page cannot tell a return from the flow apart from a direct
-  visit.
-- **No shadow-root surface.** You style and position the frame or the window,
-  and you decide when to take it down.
+**No cookie probe and no fallback.** The package checks whether the browser
+will send the flow's cookie in a frame and falls back to a window or a
+redirect when it will not. A plain frame in a browser that refuses
+third-party cookies shows the flow failing to sign in instead. If you cannot
+vouch for the browsers, open a window with `embed=popup` or navigate the tab
+with `embed=redirect`.
+
+**No single-launch guard.** Two frames run two flows. Opening a window under
+the name `catena-connect` each time keeps a second `window.open()` on the
+first window, but restarts the flow in it.
+
+**No de-duplication of the outcome.** A second press of the button posts
+the outcome again, and your listener has to keep only the first.
+
+**No teardown of the window.** The package closes it on `destroy()`. A
+plain integration closes it itself.
+
+**No `resume()`.** Which destination page was reached says how the flow
+ended, and your webhooks carry the detail, as they do on the package's
+redirect path. Without a record written before the navigation, though, a
+destination page cannot tell a return from the flow apart from a direct
+visit.
+
+**No shadow-root surface.** You style and position the frame or the window,
+and you decide when to take it down.
 
 Frame when you control the browsers, window when you do not, redirect when you
 need nothing on the page at all. The three modes the package moves between are
@@ -971,12 +987,14 @@ one.
 
 ### Support
 
-- **The current major** receives features and fixes.
-- **The previous major** receives security fixes, and fixes for breakage
-  caused by changes on the Catena side, for twelve months after the next major
-  is published. For that window the flow keeps posting the messages the
-  previous major reads.
-- **Older majors and the `0.0.x` releases** are unsupported.
+**The current major** receives features and fixes.
+
+**The previous major** receives security fixes, and fixes for breakage
+caused by changes on the Catena side, for twelve months after the next major
+is published. For that window the flow keeps posting the messages the
+previous major reads.
+
+**Older majors and the `0.0.x` releases** are unsupported.
 
 A published version is never unpublished. A version with a defect is
 superseded by a fixed one and, if you have to move off it, marked deprecated
