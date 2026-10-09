@@ -409,7 +409,7 @@ export function resume(options: ResumeOptions): void {
 }
 
 /**
- * Resolve the mode decision early so the next `open()` shows no loading state.
+ * Resolve the mode decision early so the next `open()` does not wait on it.
  * An optimization, never a requirement.
  *
  * Nothing is returned and nothing is awaited: the verdict lands in the probe's

@@ -159,7 +159,7 @@ export interface CatenaConnectHandle {
    * A probe already in flight is not the launch's to stop. It belongs to the
    * page — `preload()` runs one with no launch at all — it removes its own
    * frame, listener and timer within its budget, and the verdict it reaches
-   * is kept so the next launch with the same key skips the loading state.
+   * is kept so the next launch with the same key skips the probe.
    */
   destroy(): void;
 }

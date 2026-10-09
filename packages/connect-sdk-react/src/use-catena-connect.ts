@@ -50,7 +50,7 @@ export interface UseCatenaConnectOptions
   container?: RefObject<HTMLElement | null>;
   /**
    * Resolve the mode decision while the component is mounted, so the first
-   * launch opens straight into the flow instead of a loading state. Runs
+   * launch starts loading the flow without waiting on that decision. Runs
    * whenever `inviteUrl` or `embedKey` changes and never throws. Defaults to
    * `true`; set `false` to leave the decision until `open()`.
    */
