@@ -11,6 +11,7 @@ import {
   isClosed,
   mountFrame,
   openPopup,
+  REVEAL_GRACE_MS,
   redirect,
   watchClosed,
 } from "./modes";
@@ -138,10 +139,11 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // Frame mode needs no user gesture, which is what lets the surface go up
   // first and the mode be decided behind it.
   //
-  // A verdict the page already holds skips the loading state entirely: either
-  // answer now has something to put up in its place, so a loading state would
-  // just be a visible flicker.
-  if (resolvedVerdict(origin, embedKey) === null) {
+  // Only a held "unsupported" skips the loading state: the affordance goes up
+  // in its place on the next microtask, and a loading state would just be a
+  // visible flicker. A held "supported" still shows it, because the frame it
+  // mounts is blank until the flow has drawn.
+  if (resolvedVerdict(origin, embedKey) !== "unsupported") {
     surface.showLoading();
   }
 
@@ -155,6 +157,12 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
       // may still follow and must still be delivered.
       onTerminal: () => {
         launch.finished = true;
+        // A flow that ends before it said it was ready still has something
+        // on screen worth showing, and nothing left to wait for.
+        launch.surface.reveal();
+      },
+      onOpen: () => {
+        launch.surface.reveal();
       },
     },
     options
@@ -190,7 +198,24 @@ function enter(launch: Launch, verdict: ProbeVerdict, launchUrl: string): void {
       withEmbedMode(launchUrl, EMBED_FRAME)
     );
     launch.source = frame.contentWindow;
-    launch.cleanups.push(() => frame.remove());
+
+    // The frame stays behind the loading state until the flow posts `open`.
+    // If that never comes — an error page in the frame, or an app that
+    // cannot reach this page to say so — the frame is shown anyway, a little
+    // after its document loaded, so a missing message can never leave the
+    // user on a spinner with nothing behind it.
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    const onLoad = (): void => {
+      clearTimeout(fallback);
+      fallback = setTimeout(() => launch.surface.reveal(), REVEAL_GRACE_MS);
+    };
+    frame.addEventListener("load", onLoad);
+
+    launch.cleanups.push(() => {
+      clearTimeout(fallback);
+      frame.removeEventListener("load", onLoad);
+      frame.remove();
+    });
     return;
   }
 

@@ -36,6 +36,11 @@ export interface MessageRouting {
    * dismissal. This is how the launch learns it is no longer live.
    */
   onTerminal?: () => void;
+  /**
+   * Called on every `open`, before the caller's `onOpen`. This is how the
+   * launch learns the flow has drawn and its frame can be shown.
+   */
+  onOpen?: () => void;
 }
 
 /** What a caller holds onto for the life of a launch. */
@@ -97,6 +102,7 @@ export function listen(
     // installed package.
     switch (envelope.event) {
       case EVENT_OPEN:
+        routing.onOpen?.();
         callbacks.onOpen?.({});
         return;
 

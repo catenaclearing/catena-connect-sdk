@@ -500,6 +500,64 @@ describe("the loading state", () => {
   });
 });
 
+describe("holding what is mounted behind the loading state", () => {
+  it("shows the loading state over it", () => {
+    const surface = createSurface();
+    surface.mount.append(document.createElement("iframe"));
+
+    surface.hold();
+
+    expect(surface.mount.classList.contains("held")).toBe(true);
+    expect(surface.mount.querySelector(".status")?.textContent).toBe(
+      "Loading…"
+    );
+  });
+
+  it("lets it through on reveal, and empties the live region", () => {
+    const surface = createSurface();
+    surface.hold();
+
+    surface.reveal();
+
+    expect(surface.mount.classList.contains("held")).toBe(false);
+    expect(surface.mount.classList.contains("loading")).toBe(false);
+    expect(surface.mount.querySelector(".status")?.textContent).toBe("");
+  });
+
+  it("leaves anything it was not holding alone", () => {
+    // Every `open` reveals, and in popup mode the window posts one too. The
+    // affordance's sentence must survive it.
+    const surface = createSurface();
+    surface.showContinue(() => {});
+    const sentence = surface.mount.querySelector(".status")?.textContent;
+
+    surface.reveal();
+
+    expect(surface.mount.querySelector(".status")?.textContent).toBe(sentence);
+    expect(surface.mount.querySelector("button")).not.toBeNull();
+  });
+
+  it("drops the hold when the mount point is cleared", () => {
+    const surface = createSurface();
+    surface.hold();
+
+    surface.clear();
+
+    expect(surface.mount.classList.contains("held")).toBe(false);
+    expect(surface.mount.classList.contains("loading")).toBe(false);
+  });
+
+  it("does nothing once destroyed", () => {
+    const surface = createSurface();
+    surface.destroy();
+
+    expect(() => {
+      surface.hold();
+      surface.reveal();
+    }).not.toThrow();
+  });
+});
+
 describe("the continue affordance", () => {
   it("gives the user a real control, inside the root", () => {
     const surface = createSurface();

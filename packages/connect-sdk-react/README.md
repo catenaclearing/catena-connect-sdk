@@ -175,7 +175,7 @@ an element rendered by the same component. Omit it and the flow renders in
 the core's overlay.
 
 **`preload`** resolves the mode decision while the component is mounted, so
-the first launch opens straight into the flow instead of a loading state.
+the first launch starts loading the flow without waiting on that check.
 It runs with the launch's embed key whenever `inviteUrl` or `embedKey`
 changes, never throws, and is an optimization
 only. Set `false` to leave the decision until `open()`.

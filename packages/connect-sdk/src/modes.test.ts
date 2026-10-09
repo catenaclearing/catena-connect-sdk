@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { open, preload } from "./index";
-import { mountFrame, openPopup, watchClosed } from "./modes";
+import { mountFrame, openPopup, REVEAL_GRACE_MS, watchClosed } from "./modes";
 import { BUDGET_MS, resolvedVerdict } from "./probe";
 import { createSurface } from "./surface";
 
@@ -36,6 +36,20 @@ function surfaceHost(): Element | null {
 /** The frame the flow runs in. It lives inside the shadow root. */
 function flowFrame(): HTMLIFrameElement | null {
   return surfaceHost()?.shadowRoot?.querySelector("iframe") ?? null;
+}
+
+/** What the surface's live region says. */
+function status(): string | null | undefined {
+  return surfaceHost()?.shadowRoot?.querySelector(".status")?.textContent;
+}
+
+/** Whether the flow's frame is still hidden behind the loading state. */
+function held(): boolean {
+  return (
+    surfaceHost()
+      ?.shadowRoot?.querySelector(".panel")
+      ?.classList.contains("held") ?? false
+  );
 }
 
 /** The continue affordance, which lives inside the shadow root too. */
@@ -163,13 +177,32 @@ describe("the frame the flow runs in", () => {
     expect(document.body.querySelector("iframe")).toBeNull();
   });
 
-  it("replaces the loading state rather than stacking on it", () => {
+  it("is held behind the loading state until it is revealed", () => {
+    // Mounted, so it loads, but not shown: a frame is blank until the page
+    // inside it has drawn, and that takes seconds after mounting it.
+    const surface = createSurface();
+
+    const frame = mountFrame(surface, LAUNCH_URL);
+
+    expect(frame.isConnected).toBe(true);
+    expect(surface.mount.classList.contains("held")).toBe(true);
+    expect(surface.mount.querySelector(".status")?.textContent).toBe(
+      "Loading…"
+    );
+
+    surface.reveal();
+
+    expect(surface.mount.classList.contains("held")).toBe(false);
+    expect(surface.mount.querySelector(".status")?.textContent).toBe("");
+  });
+
+  it("keeps one loading state rather than stacking a second", () => {
     const surface = createSurface();
     surface.showLoading();
 
     mountFrame(surface, LAUNCH_URL);
 
-    expect(surface.mount.querySelector(".status")?.textContent).toBe("");
+    expect(surface.mount.querySelectorAll(".status")).toHaveLength(1);
   });
 
   it("is not sandboxed", () => {
@@ -272,20 +305,86 @@ describe("launching on a supported verdict", () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it("shows a loading state only until the verdict arrives", async () => {
+  it("shows the loading state until the flow says it is ready", async () => {
+    // Not until the verdict: the frame that verdict mounts is blank for the
+    // seconds the page inside takes to draw, and taking the loading state
+    // down with the mount left the user looking at nothing.
     const { origin, inviteUrl } = nextInvite();
-    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    const onOpen = vi.fn();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onOpen }));
 
-    const status = () =>
-      surfaceHost()?.shadowRoot?.querySelector(".status")?.textContent;
-    expect(status()).not.toBe("");
+    expect(status()).toBe("Loading…");
 
     await answerProbe(origin, true);
+    expect(status()).toBe("Loading…");
 
+    sendEvent(origin, flowFrame()?.contentWindow, "open");
+
+    expect(status()).toBe("");
+    expect(held()).toBe(false);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores an open from anywhere but its own frame", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+
+    sendEvent(origin, window, "open");
+
+    expect(held()).toBe(true);
+  });
+
+  it("shows the frame anyway when no open follows its load", async () => {
+    // An error page in the frame, or an app that cannot reach this page,
+    // never posts `open`. The user gets whatever the frame shows rather than
+    // a spinner with nothing behind it.
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+
+    // jsdom fires no `load` of its own.
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(REVEAL_GRACE_MS - 1);
+    expect(held()).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(held()).toBe(false);
     expect(status()).toBe("");
   });
 
-  it("skips the loading state once the page already has a verdict", async () => {
+  it("waits for nothing but the frame's load to start that fallback", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+
+    await vi.advanceTimersByTimeAsync(REVEAL_GRACE_MS * 10);
+
+    expect(held()).toBe(true);
+  });
+
+  it("shows the frame when the flow ends before it said it was ready", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+
+    sendEvent(origin, flowFrame()?.contentWindow, "exit");
+
+    expect(held()).toBe(false);
+  });
+
+  it("leaves no fallback running once torn down", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+    flowFrame()?.dispatchEvent(new Event("load"));
+
+    handles.pop()?.destroy();
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("skips the probe once the page already has a verdict", async () => {
     // The same origin twice, deliberately: this is the reuse the cache is
     // for, and the second launch has nothing left to wait on.
     const { origin, inviteUrl } = nextInvite();
@@ -295,10 +394,22 @@ describe("launching on a supported verdict", () => {
 
     handles.push(open({ inviteUrl, embedKey: "pk_test" }));
 
-    expect(
-      surfaceHost()?.shadowRoot?.querySelector(".status")?.textContent
-    ).toBe("");
     expect(probeFrame()).toBeNull();
+    // Still loading: there is no round trip left, but the frame it mounts is
+    // blank until the flow has drawn.
+    expect(status()).toBe("Loading…");
+  });
+
+  it("skips the loading state when the verdict held is unsupported", async () => {
+    // The affordance goes up on the next microtask, so a loading state in
+    // front of it would only flicker.
+    const { origin, inviteUrl } = nextInvite();
+    preload({ inviteUrl, embedKey: "pk_test" });
+    await answerProbe(origin, false);
+
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+
+    expect(status()).toBe("");
   });
 
   it("tears the frame down with the launch", async () => {
@@ -1081,8 +1192,8 @@ describe("resolving the verdict ahead of a launch", () => {
 
   it("leaves the next launch nothing to wait for", async () => {
     // The whole of what it buys. The launch that follows a resolved verdict
-    // mounts its frame with no loading state in between, because there is
-    // no round trip left to run.
+    // mounts its frame without a probe in between, because there is no round
+    // trip left to run. The loading state is the frame's own and stays.
     const { origin, inviteUrl } = nextInvite();
     preload({ inviteUrl, embedKey: "pk_test" });
     await answerProbe(origin, true);
@@ -1090,12 +1201,6 @@ describe("resolving the verdict ahead of a launch", () => {
     handles.push(open({ inviteUrl, embedKey: "pk_test" }));
     expect(probeFrame()).toBeNull();
 
-    // Nothing was ever put up to replace: the status is empty from the
-    // first frame the user could see, rather than holding "Loading…" until
-    // the verdict lands.
-    expect(
-      surfaceHost()?.shadowRoot?.querySelector(".status")?.textContent
-    ).toBe("");
     // The mount itself still lands on a microtask — the verdict is read
     // through a promise either way, and that is what keeps a warm launch
     // and a cold one the same shape.
@@ -1254,7 +1359,7 @@ describe("a probe outlives the launch that was torn down while it ran", () => {
     // launch at all, and the verdict is kept for the life of the page. So a
     // launch destroyed mid-probe leaves it to finish — a hidden frame and a
     // timer bounded by the budget, which then remove themselves — and the
-    // launch after it skips the loading state. Cancelling it would throw away
+    // launch after it skips the probe. Cancelling it would throw away
     // an answer seconds from arriving, and would have to be reference-counted
     // against a preload or a second launch sharing the same round trip.
     const { origin, inviteUrl } = nextInvite();
@@ -1266,10 +1371,7 @@ describe("a probe outlives the launch that was torn down while it ran", () => {
     expect(probeFrame()).toBeNull();
 
     handles.push(open({ inviteUrl, embedKey: "pk_test" }));
-    // The loading state is skipped synchronously when a verdict is held.
-    expect(
-      surfaceHost()?.shadowRoot?.querySelector(".status")?.textContent
-    ).toBe("");
+    expect(probeFrame()).toBeNull();
     await Promise.resolve();
     await Promise.resolve();
     expect(flowFrame()).not.toBeNull();
