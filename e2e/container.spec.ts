@@ -32,9 +32,11 @@ test("fills the container and hears the flow", async ({
   const frame = page.frameLocator("#caller-frame").locator("iframe.frame");
   await expect(frame).toBeVisible({ timeout: 20_000 });
 
+  // Close rather than equal: Firefox lays out in fractions of a pixel and
+  // reports 480.00003. An unstyled frame is 300 by 150, nowhere near.
   const box = await frame.boundingBox();
-  expect(box?.width).toBe(576);
-  expect(box?.height).toBe(480);
+  expect(box?.width).toBeCloseTo(576, 0);
+  expect(box?.height).toBeCloseTo(480, 0);
   expect(await frame.evaluate((f) => getComputedStyle(f).borderTopWidth)).toBe(
     "0px"
   );
