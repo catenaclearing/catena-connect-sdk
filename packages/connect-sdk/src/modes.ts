@@ -36,7 +36,9 @@ export function mountFrame(
 ): HTMLIFrameElement {
   surface.clear();
 
-  const frame = document.createElement("iframe");
+  // From the surface's document, which is the caller's container's and not
+  // necessarily ours.
+  const frame = surface.mount.ownerDocument.createElement("iframe");
   frame.className = "frame";
   frame.title = "Catena Connect";
   frame.src = launchUrl;

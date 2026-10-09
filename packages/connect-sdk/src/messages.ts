@@ -42,6 +42,15 @@ export interface MessageRouting {
    * launch learns the flow has drawn and its frame can be shown.
    */
   onOpen?: () => void;
+  /**
+   * Every window the flow's messages can land on. A window posts to its
+   * opener, which is always this one; a frame posts to its parent, which is
+   * the window of whatever document the caller's container lives in. Defaults
+   * to this window alone. Listening on more than one opens nothing up: each
+   * message is dispatched on exactly one window, and the three guards still
+   * apply to it there.
+   */
+  targets?: readonly Window[];
 }
 
 /** What a caller holds onto for the life of a launch. */
@@ -162,9 +171,16 @@ export function listen(
     }
   };
 
-  window.addEventListener("message", handler);
+  const targets = routing.targets ?? [window];
+  for (const target of targets) {
+    target.addEventListener("message", handler);
+  }
   return {
-    stop: () => window.removeEventListener("message", handler),
+    stop: () => {
+      for (const target of targets) {
+        target.removeEventListener("message", handler);
+      }
+    },
     dismiss,
   };
 }

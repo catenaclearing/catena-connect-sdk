@@ -165,6 +165,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
       onOpen: () => {
         launch.surface.reveal();
       },
+      targets: messageTargets(options.container),
     },
     options
   );
@@ -321,6 +322,19 @@ function close(popup: Window | null): void {
     // Nothing downstream depends on this having worked: every listener and
     // timer the launch owned is already gone by the time it runs.
   }
+}
+
+/**
+ * Where the flow's messages arrive: this window, which a popup posts to as its
+ * opener, and the container's window, which a frame posts to as its parent.
+ * The same window for nearly every caller. A different one when the caller
+ * runs us from their top window and hands over a container inside a frame of
+ * theirs, and listening only here would then drop every callback the framed
+ * flow sends.
+ */
+function messageTargets(container: HTMLElement | undefined): Window[] {
+  const theirs = container?.ownerDocument.defaultView;
+  return theirs && theirs !== window ? [window, theirs] : [window];
 }
 
 /**
