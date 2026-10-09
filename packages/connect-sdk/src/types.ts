@@ -38,11 +38,21 @@ export interface ConnectConnectionEvent {
   connectionId: string;
 }
 
+/**
+ * The fleet deleted one of its connections. Not an ending, as with
+ * `onConnection`: the flow is still running.
+ */
+export interface ConnectConnectionDeletedEvent {
+  /** The connection just deleted. */
+  connectionId: string;
+}
+
 /** The flow completed. */
 export interface ConnectSuccessEvent {
   /**
-   * The connections this launch established or restored. Empty on a resumed
-   * launch: nothing survives a full-page navigation to carry them.
+   * The connections this launch established or restored, less any the fleet
+   * deleted before finishing. Empty on a resumed launch: nothing survives a
+   * full-page navigation to carry them.
    */
   connectionIds: string[];
 }
@@ -69,6 +79,7 @@ export type ConnectCloseEvent = Record<string, never>;
 export interface ConnectCallbacks {
   onOpen?: (event: ConnectOpenEvent) => void;
   onConnection?: (event: ConnectConnectionEvent) => void;
+  onConnectionDeleted?: (event: ConnectConnectionDeletedEvent) => void;
   onSuccess?: (event: ConnectSuccessEvent) => void;
   onExit?: (event: ConnectExitEvent) => void;
   onClose?: (event: ConnectCloseEvent) => void;

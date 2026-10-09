@@ -155,7 +155,7 @@ can go straight into an `onClick` or a dependency list.
 | `variant` | `"full" \| "card" \| string` | no |
 | `theme` | `"light" \| "dark" \| string` | no |
 | `logoUrl`, `logoUrlDark`, `brandColor` | `string` | no |
-| `onOpen`, `onConnection`, `onSuccess`, `onExit`, `onClose` | callbacks | no |
+| `onOpen`, `onConnection`, `onConnectionDeleted`, `onSuccess`, `onExit`, `onClose` | callbacks | no |
 
 Every option other than `inviteUrl`, `container` and `preload` is the core's,
 with the core's meaning and default; the core README's
@@ -280,7 +280,7 @@ own. Elsewhere the directive is inert.
 
 ## Events
 
-The five callbacks, their payloads, and what each one does and does not mean
+The six callbacks, their payloads, and what each one does and does not mean
 are the core's, and this package delivers them unchanged. Read the core
 README's
 [Events](https://github.com/catenaclearing/catena-connect-sdk/blob/main/packages/connect-sdk/README.md#events)

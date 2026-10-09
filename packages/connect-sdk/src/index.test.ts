@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   ConnectCallbacks,
   ConnectCloseEvent,
+  ConnectConnectionDeletedEvent,
   ConnectConnectionEvent,
   ConnectExitEvent,
   ConnectOpenEvent,
@@ -56,7 +57,7 @@ describe("connect-sdk public surface", () => {
     expect(Object.keys(sdk).sort()).toEqual(["open", "preload", "resume"]);
   });
 
-  it("exports the payload type of each of the five callbacks", () => {
+  it("exports the payload type of each of the six callbacks", () => {
     // Checked by `pnpm tsc` rather than the runner: a type the entry point
     // does not export fails the import. `ConnectConnectionEvent` was once
     // defined but left off the list, so a caller could receive an
@@ -64,12 +65,14 @@ describe("connect-sdk public surface", () => {
     const callbacks: Required<ConnectCallbacks> = {
       onOpen: (event: ConnectOpenEvent) => event,
       onConnection: (event: ConnectConnectionEvent) => event.connectionId,
+      onConnectionDeleted: (event: ConnectConnectionDeletedEvent) =>
+        event.connectionId,
       onSuccess: (event: ConnectSuccessEvent) => event.connectionIds,
       onExit: (event: ConnectExitEvent) => event.reason,
       onClose: (event: ConnectCloseEvent) => event,
     };
 
-    expect(Object.keys(callbacks)).toHaveLength(5);
+    expect(Object.keys(callbacks)).toHaveLength(6);
   });
 });
 

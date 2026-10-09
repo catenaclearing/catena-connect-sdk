@@ -255,7 +255,7 @@ else. Its source is small and flat:
 - `src/catena-connect.tsx` — the inline component: the hook on a `div` it owns.
 - `src/use-catena-connect-resume.ts` — the core's `resume()` as a mount effect.
 - `src/latest.ts` — the latest-handler forwarding: a ref refreshed in a layout
-  effect (aliased to `useEffect` on the server) and five stable forwarders.
+  effect (aliased to `useEffect` on the server) and six stable forwarders.
 - `src/test-utils.tsx` — test-only mount helpers; never imported from
   `src/index.ts`. Tests sit beside their source as `src/*.test.ts(x)`.
 

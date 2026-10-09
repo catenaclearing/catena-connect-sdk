@@ -4,7 +4,7 @@
  * The core captures its options at `open()`. That is right for the launch
  * URL, which must not move while a flow is in progress, and wrong for the
  * handlers, which a React component rewrites on every render. So the hooks
- * hand the core five stable functions that read the current handler through
+ * hand the core six stable functions that read the current handler through
  * a ref at delivery time. A re-render replaces what the ref holds; nothing is
  * relaunched.
  */
@@ -34,7 +34,7 @@ export function useLatest<T>(value: T): RefObject<T> {
 }
 
 /**
- * Five forwarding callbacks over a ref of the latest handlers.
+ * Six forwarding callbacks over a ref of the latest handlers.
  *
  * Created once per call and never again, so a hook can hold the result in a
  * ref and pass the same functions to every launch.
@@ -45,6 +45,7 @@ export function forwardCallbacks(
   return {
     onOpen: (event) => latest.current.onOpen?.(event),
     onConnection: (event) => latest.current.onConnection?.(event),
+    onConnectionDeleted: (event) => latest.current.onConnectionDeleted?.(event),
     onSuccess: (event) => latest.current.onSuccess?.(event),
     onExit: (event) => latest.current.onExit?.(event),
     onClose: (event) => latest.current.onClose?.(event),

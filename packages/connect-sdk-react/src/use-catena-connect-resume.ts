@@ -21,7 +21,7 @@ import { forwardCallbacks, useLatest } from "./latest";
 /**
  * Options for `useCatenaConnectResume()`: the core's `resume()` options,
  * unchanged. `outcome` says which destination page this is; the handlers are
- * the same five the launch takes.
+ * the same six the launch takes.
  */
 export type UseCatenaConnectResumeOptions = ResumeOptions;
 

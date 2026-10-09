@@ -163,7 +163,7 @@ the flow's last screen, with no button back to your site.
 | `variant` | `"full" \| "card" \| string` | no |
 | `theme` | `"light" \| "dark" \| string` | no |
 | `logoUrl`, `logoUrlDark`, `brandColor` | `string` | no |
-| `onOpen`, `onConnection`, `onSuccess`, `onExit`, `onClose` | callbacks | no |
+| `onOpen`, `onConnection`, `onConnectionDeleted`, `onSuccess`, `onExit`, `onClose` | callbacks | no |
 
 Returns `{ destroy(): void }`.
 
@@ -331,13 +331,14 @@ starts with a new handle.
 
 ## Events
 
-All five callbacks are optional. If you supply none, the flow still works and
+All six callbacks are optional. If you supply none, the flow still works and
 you learn the outcome from your webhooks.
 
 | Callback | Meaning | Payload |
 | --- | --- | --- |
 | `onOpen` | The flow is ready. It can arrive more than once. | none |
 | `onConnection` | One provider was connected. The flow is still running. | `{ connectionId: string }` |
+| `onConnectionDeleted` | The fleet deleted a connection. The flow is still running. | `{ connectionId: string }` |
 | `onSuccess` | The user finished and chose to come back to you. | `{ connectionIds: string[] }` |
 | `onExit` | The flow ended without success. | `{ reason: string }` |
 | `onClose` | The surface should be dismissed. | none |
@@ -363,8 +364,9 @@ closes the surface, or just leaves the tab, never produces `onSuccess`, and
 their connection is still real. Treat `onSuccess` as "they are done and
 heading back
 to you", and treat your connection webhooks as the record of what was actually
-established. `connectionIds` is what this session saw, and is best effort for
-the same reason.
+established. `connectionIds` lists the connections this session made, less
+any the fleet deleted before finishing, and is best effort for the same
+reason.
 
 ### `onConnection` is the connection being made
 
@@ -376,9 +378,18 @@ your page and may never press the button that produces `onSuccess`. The same
 one session. As with `connectionIds`, treat it as a prompt to check, and your
 webhooks as the record.
 
-`onOpen` and `onConnection` do not fire on every path. The redirect mode
+### `onConnectionDeleted` is a connection going away
+
+The flow lets the fleet delete a connection, and this fires when it does,
+with the deleted connection's `connectionId`. Like `onConnection`, it is not
+an ending and the flow keeps running. If you stored an id from an earlier
+`onConnection`, drop it here instead of waiting for your webhooks to catch
+up. The connection may be one made before this session, so an id you have
+never seen is normal.
+
+`onOpen`, `onConnection` and `onConnectionDeleted` do not fire on every path. The redirect mode
 (below) navigates away before the flow reports itself ready, and has no
-channel to deliver either.
+channel to deliver any of them.
 
 ### The package never dismisses your surface
 
@@ -704,7 +715,8 @@ has redirect URLs. For many sites that is a complete integration.
 ### Reading the completion messages
 
 A frame or a window posts a message to the page that opened it when the flow
-is ready, as each provider is connected, and when the user finishes. Every
+is ready, as each provider is connected or a connection is deleted, and when
+the user finishes. Every
 message has this shape, with the detail beside `event` and no
 wrapper around it:
 
@@ -712,8 +724,14 @@ wrapper around it:
 type CatenaConnectMessage = {
   source: "catena-connect";
   version: 1;
-  event: "open" | "connection" | "success" | "exit" | "close";
-  connectionId?: string;    // with "connection"
+  event:
+    | "open"
+    | "connection"
+    | "connection_deleted"
+    | "success"
+    | "exit"
+    | "close";
+  connectionId?: string;    // with "connection" and "connection_deleted"
   connectionIds?: string[]; // with "success"
   reason?: string;          // with "exit"
 };
@@ -752,6 +770,9 @@ window.addEventListener("message", (event) => {
     case "connection":
       noteConnection(event.data.connectionId);
       break;
+    case "connection_deleted":
+      forgetConnection(event.data.connectionId);
+      break;
     case "success":
       if (settled) break;
       settled = true;
@@ -777,7 +798,7 @@ releases, and [Versioning and support](#versioning-and-support) says what is
 promised to stay.
 
 Which events arrive depends on how the URL was opened. A frame delivers all
-five. A window delivers all five too, with one gap: a user who closes the
+six. A window delivers all six too, with one gap: a user who closes the
 window posts nothing. The package polls the window's `closed` property every
 half second to produce `onClose` there, and a plain integration that needs to
 know does the same. A redirect delivers none: the tab has navigated away, and
@@ -917,16 +938,16 @@ you call or what you receive.
 - The documented exports, `open`, `resume` and `preload`, and their options,
   and the exported TypeScript types for the options, the handle and the event
   payloads.
-- The five callbacks, `onOpen`, `onConnection`, `onSuccess`, `onExit` and
-  `onClose`, and the fields of their payloads: `connectionId`,
-  `connectionIds` and `reason`.
+- The six callbacks, `onOpen`, `onConnection`, `onConnectionDeleted`,
+  `onSuccess`, `onExit` and `onClose`, and the fields of their payloads:
+  `connectionId`, `connectionIds` and `reason`.
 - The behavior this README documents and you can observe: one launch at a
   time, which callbacks arrive on which of the three modes, and that
   `onSuccess` and `onExit` never both arrive for one launch.
 - For a page that reads the flow's completion messages directly, without this
   package: in a message whose `version` is `1`, the `source` marker
-  `catena-connect`, the five event names `open`, `connection`, `success`,
-  `exit` and `close`, and the field names that sit beside `event`:
+  `catena-connect`, the six event names `open`, `connection`,
+  `connection_deleted`, `success`, `exit` and `close`, and the field names that sit beside `event`:
   `connectionId`, `connectionIds` and `reason`.
 - For a page that launches the flow from a URL it builds itself: the launch
   URL parameter names `embed`, `embed_key`, `variant`, `theme`, `brand_color`,

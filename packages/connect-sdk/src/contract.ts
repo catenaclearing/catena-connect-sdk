@@ -38,6 +38,7 @@ import {
   type EmbedMode,
   EVENT_CLOSE,
   EVENT_CONNECTION,
+  EVENT_CONNECTION_DELETED,
   EVENT_EXIT,
   EVENT_OPEN,
   EVENT_PROBE,
@@ -68,6 +69,7 @@ export {
   type EmbedMode,
   EVENT_CLOSE,
   EVENT_CONNECTION,
+  EVENT_CONNECTION_DELETED,
   EVENT_EXIT,
   EVENT_OPEN,
   EVENT_PROBE,
@@ -99,6 +101,10 @@ export interface MessageStamp {
 export type CompletionMessage =
   | (MessageStamp & { event: typeof EVENT_OPEN })
   | (MessageStamp & { event: typeof EVENT_CONNECTION; connectionId: string })
+  | (MessageStamp & {
+      event: typeof EVENT_CONNECTION_DELETED;
+      connectionId: string;
+    })
   | (MessageStamp & { event: typeof EVENT_SUCCESS; connectionIds: string[] })
   | (MessageStamp & { event: typeof EVENT_EXIT; reason: string })
   | (MessageStamp & { event: typeof EVENT_CLOSE });

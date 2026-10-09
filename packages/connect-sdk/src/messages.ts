@@ -11,6 +11,7 @@ import type { ConnectCallbacks } from "./types";
 import {
   EVENT_CLOSE,
   EVENT_CONNECTION,
+  EVENT_CONNECTION_DELETED,
   EVENT_EXIT,
   EVENT_OPEN,
   EVENT_SUCCESS,
@@ -111,6 +112,13 @@ export function listen(
       // non-string identifier delivers an empty one, as an exit's reason does.
       case EVENT_CONNECTION:
         callbacks.onConnection?.({
+          connectionId: asString(envelope.connectionId),
+        });
+        return;
+
+      // The same as a connection, in the other direction.
+      case EVENT_CONNECTION_DELETED:
+        callbacks.onConnectionDeleted?.({
           connectionId: asString(envelope.connectionId),
         });
         return;

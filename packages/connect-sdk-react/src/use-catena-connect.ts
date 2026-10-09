@@ -2,7 +2,7 @@
  * The launch hook: the core's `open()` as a React component uses it.
  *
  * The hook holds the handle, tears the launch down when the component
- * unmounts, and hands the core five stable callbacks that read the current
+ * unmounts, and hands the core six stable callbacks that read the current
  * handler at delivery time (see `latest.ts`). What it does not do is change
  * the flow: every option is the core's, with the core's meaning and default.
  */
@@ -96,7 +96,7 @@ export function useCatenaConnect(
   const latest = useLatest(options);
 
   // Created once for the component's life, so every launch is handed the same
-  // five functions. Lazily, because `forwardCallbacks` only needs the ref.
+  // six functions. Lazily, because `forwardCallbacks` only needs the ref.
   const forwarders = useRef<ConnectCallbacks | null>(null);
   if (forwarders.current === null) {
     forwarders.current = forwardCallbacks(latest);

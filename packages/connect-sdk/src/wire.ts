@@ -61,9 +61,10 @@ export const MESSAGE_SOURCE = "catena-connect";
 /** The contract version this package was written against. */
 export const CONTRACT_VERSION = 1;
 
-/** The five events we recognize. Anything else is ignored. */
+/** The six events we recognize. Anything else is ignored. */
 export const EVENT_OPEN = "open";
 export const EVENT_CONNECTION = "connection";
+export const EVENT_CONNECTION_DELETED = "connection_deleted";
 export const EVENT_SUCCESS = "success";
 export const EVENT_EXIT = "exit";
 export const EVENT_CLOSE = "close";
@@ -77,7 +78,7 @@ export const EVENT_CLOSE = "close";
  *
  * Two shapes share this type, and they differ in where the detail sits. A
  * completion carries its fields beside `event` — `connectionId` on a
- * connection, `connectionIds` on a success, `reason` on an exit — which is the
+ * connection or a deletion, `connectionIds` on a success, `reason` on an exit — which is the
  * shape the app's own integration document
  * tells a raw `postMessage` consumer to read, and so is frozen. The probe's
  * verdict is the one message that nests, under `payload`. Reading a
