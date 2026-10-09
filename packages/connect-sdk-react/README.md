@@ -162,21 +162,23 @@ with the core's meaning and default; the core README's
 [`open(options)`](https://github.com/catenaclearing/catena-connect-sdk/blob/main/packages/connect-sdk/README.md#openoptions)
 section is the reference. Those three differ for a component's life cycle:
 
-- **`inviteUrl` may be absent while your application is still loading it.**
-  `open()` throws until it is there. That is a programming error to fix, not
-  a state to wait out: a button wired up before the invitation arrived.
-  When it does arrive, it should come from your own server, never from the
-  page's URL or other input a visitor controls; the core README's
-  [`inviteUrl`](https://github.com/catenaclearing/catena-connect-sdk/blob/main/packages/connect-sdk/README.md#inviteurl)
-  section says why.
-- **`container` is a ref**, read when `open()` is called, so it can point at
-  an element rendered by the same component. Omit it and the flow renders in
-  the core's overlay.
-- **`preload`** resolves the mode decision while the component is mounted, so
-  the first launch opens straight into the flow instead of a loading state.
-  It runs with the launch's embed key whenever `inviteUrl` or `embedKey`
-  changes, never throws, and is an optimization
-  only. Set `false` to leave the decision until `open()`.
+**`inviteUrl` may be absent while your application is still loading it.**
+`open()` throws until it is there. That is a programming error to fix, not
+a state to wait out: a button wired up before the invitation arrived.
+When it does arrive, it should come from your own server, never from the
+page's URL or other input a visitor controls; the core README's
+[`inviteUrl`](https://github.com/catenaclearing/catena-connect-sdk/blob/main/packages/connect-sdk/README.md#inviteurl)
+section says why.
+
+**`container` is a ref**, read when `open()` is called, so it can point at
+an element rendered by the same component. Omit it and the flow renders in
+the core's overlay.
+
+**`preload`** resolves the mode decision while the component is mounted, so
+the first launch opens straight into the flow instead of a loading state.
+It runs with the launch's embed key whenever `inviteUrl` or `embedKey`
+changes, never throws, and is an optimization
+only. Set `false` to leave the decision until `open()`.
 
 **`open()`** launches the flow with the options as of your latest render, or
 brings the live surface back if a launch is already up. One flow runs at a
