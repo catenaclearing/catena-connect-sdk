@@ -39,6 +39,7 @@ const OPTION_KEYS = {
   brandColor: true,
   onOpen: true,
   onConnection: true,
+  onConnectionDeleted: true,
   onSuccess: true,
   onExit: true,
   onClose: true,

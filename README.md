@@ -11,7 +11,7 @@ Catena's telematics-connection flow in your own application.
 ## The core SDK
 
 `open()` renders the connection flow on your page and reports the outcome
-through five typed callbacks. It checks whether the browser will run the flow
+through six typed callbacks. It checks whether the browser will run the flow
 in an iframe, and if not falls back to a popup window, then to a redirect in
 the current tab. The iframe and popup paths deliver every callback. The
 redirect path navigates away from the page holding your callbacks, so its

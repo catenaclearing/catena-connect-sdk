@@ -76,11 +76,12 @@ describe("useLatest + forwardCallbacks", () => {
     expect(() => seen[0].onClose?.({})).not.toThrow();
   });
 
-  it("forwards all five events", () => {
+  it("forwards all six events", () => {
     const latest = {
       current: {
         onOpen: vi.fn(),
         onConnection: vi.fn(),
+        onConnectionDeleted: vi.fn(),
         onSuccess: vi.fn(),
         onExit: vi.fn(),
         onClose: vi.fn(),
@@ -90,6 +91,7 @@ describe("useLatest + forwardCallbacks", () => {
 
     forwarders.onOpen?.({});
     forwarders.onConnection?.({ connectionId: "c1" });
+    forwarders.onConnectionDeleted?.({ connectionId: "c2" });
     forwarders.onSuccess?.({ connectionIds: ["c1"] });
     forwarders.onExit?.({ reason: "user" });
     forwarders.onClose?.({});
@@ -97,6 +99,9 @@ describe("useLatest + forwardCallbacks", () => {
     expect(latest.current.onOpen).toHaveBeenCalledWith({});
     expect(latest.current.onConnection).toHaveBeenCalledWith({
       connectionId: "c1",
+    });
+    expect(latest.current.onConnectionDeleted).toHaveBeenCalledWith({
+      connectionId: "c2",
     });
     expect(latest.current.onSuccess).toHaveBeenCalledWith({
       connectionIds: ["c1"],

@@ -146,10 +146,11 @@ describe("the three guards", () => {
 });
 
 describe("mapping the contract onto the callbacks", () => {
-  it("maps each of the five events to its callback", () => {
+  it("maps each of the six events to its callback", () => {
     const callbacks = {
       onOpen: vi.fn(),
       onConnection: vi.fn(),
+      onConnectionDeleted: vi.fn(),
       onSuccess: vi.fn(),
       onExit: vi.fn(),
       onClose: vi.fn(),
@@ -163,6 +164,10 @@ describe("mapping the contract onto the callbacks", () => {
     });
     deliver({
       source,
+      data: envelope("connection_deleted", { connectionId: "conn_3" }),
+    });
+    deliver({
+      source,
       data: envelope("success", { connectionIds: ["conn_1", "conn_2"] }),
     });
     deliver({ source, data: envelope("close") });
@@ -170,6 +175,9 @@ describe("mapping the contract onto the callbacks", () => {
     expect(callbacks.onOpen).toHaveBeenCalledWith({});
     expect(callbacks.onConnection).toHaveBeenCalledWith({
       connectionId: "conn_1",
+    });
+    expect(callbacks.onConnectionDeleted).toHaveBeenCalledWith({
+      connectionId: "conn_3",
     });
     expect(callbacks.onSuccess).toHaveBeenCalledWith({
       connectionIds: ["conn_1", "conn_2"],
@@ -211,6 +219,46 @@ describe("mapping the contract onto the callbacks", () => {
 
     expect(onSuccess).toHaveBeenCalledTimes(1);
     expect(onTerminal).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers a deletion without ending the launch", () => {
+    const onConnectionDeleted = vi.fn();
+    const onSuccess = vi.fn();
+    const onTerminal = vi.fn();
+    const source = launchWindow();
+    listeners.push(
+      listen(
+        { origin: ORIGIN, source: () => source, onTerminal },
+        { onConnectionDeleted, onSuccess }
+      )
+    );
+
+    deliver({
+      source,
+      data: envelope("connection_deleted", { connectionId: "conn_1" }),
+    });
+
+    expect(onConnectionDeleted).toHaveBeenCalledWith({
+      connectionId: "conn_1",
+    });
+    expect(onTerminal).not.toHaveBeenCalled();
+
+    deliver({ source, data: envelope("success", { connectionIds: [] }) });
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onTerminal).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers an empty identifier for a deletion that carries none", () => {
+    const onConnectionDeleted = vi.fn();
+    const { source } = start({ onConnectionDeleted });
+
+    deliver({
+      source,
+      data: envelope("connection_deleted", { connectionId: 42 }),
+    });
+
+    expect(onConnectionDeleted).toHaveBeenCalledWith({ connectionId: "" });
   });
 
   it("delivers a success carrying no identifiers as a success", () => {

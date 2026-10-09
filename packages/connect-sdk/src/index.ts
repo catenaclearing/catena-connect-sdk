@@ -36,6 +36,7 @@ export type {
   CatenaConnectOptions,
   ConnectCallbacks,
   ConnectCloseEvent,
+  ConnectConnectionDeletedEvent,
   ConnectConnectionEvent,
   ConnectExitEvent,
   ConnectOpenEvent,
