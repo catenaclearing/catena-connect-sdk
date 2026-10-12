@@ -27,6 +27,8 @@
  * prevents the navigation: completing the flow matters more than the callback.
  */
 
+import { randomTail } from "./random";
+
 const STORAGE_KEY = "catena-connect.pending";
 
 /**
@@ -187,9 +189,7 @@ function parse(raw: string): PendingRecord | null {
  * Distinguish two records on one page from each other. Not a security token:
  * it is compared only against a value this same page wrote moments earlier,
  * and anything able to forge it can write the record directly.
- * `crypto.randomUUID` is unavailable outside a secure context, so using it
- * would add a fallback path for no benefit.
  */
 function newId(): string {
-  return `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
+  return `${Date.now().toString(36)}.${randomTail()}`;
 }

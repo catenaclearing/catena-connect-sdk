@@ -7,6 +7,7 @@
  */
 
 import { writePending } from "./pending";
+import { randomTail } from "./random";
 import type { Surface } from "./surface";
 import { WINDOW_NAME } from "./wire";
 
@@ -102,8 +103,7 @@ export function openPopup(launchUrl: string): Window | null {
  * distinct: the time and a random tail are enough to never meet a stale name.
  */
 function windowName(): string {
-  const tail = Math.random().toString(36).slice(2, 10);
-  return `${WINDOW_NAME}-${Date.now().toString(36)}-${tail}`;
+  return `${WINDOW_NAME}-${Date.now().toString(36)}-${randomTail()}`;
 }
 
 /**
