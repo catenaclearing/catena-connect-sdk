@@ -1,0 +1,3 @@
+# Replaces Semgrep's default ignore list, which skips `dist/`: the built
+# bundles are exactly what CI scans (see the Semgrep step in ci.yml).
+node_modules/

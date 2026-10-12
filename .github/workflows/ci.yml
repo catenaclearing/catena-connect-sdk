@@ -29,6 +29,22 @@ jobs:
       - run: pnpm tsc
       - run: pnpm test
       - run: pnpm build
+      # Static analysis run on an installed package reads the built bundle in
+      # `node_modules`, not our source, so the bundle is what gets scanned.
+      # `--no-git-ignore` because `dist/` is gitignored, and the root
+      # `.semgrepignore` replaces Semgrep's default, which skips `dist/` too;
+      # without both it scans nothing and passes. Hence the check after it
+      # that every bundle was actually read.
+      - name: Semgrep (built bundles)
+        run: |
+          pipx run --spec semgrep==1.180.0 semgrep scan \
+            --config p/javascript --config p/nodejsscan \
+            --metrics=off --error --no-git-ignore \
+            --json-output=semgrep.json packages/*/dist
+          for bundle in packages/*/dist/*.js packages/*/dist/*.cjs; do
+            jq -e --arg f "$bundle" '.paths.scanned | index($f)' semgrep.json > /dev/null \
+              || { echo "::error::Semgrep did not scan $bundle"; exit 1; }
+          done
 
   # The iframe check's timing in real browsers (`e2e/`). jsdom loads no frames
   # and has no network, so this is the only place a slow network is tested.
