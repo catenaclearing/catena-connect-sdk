@@ -3,6 +3,9 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    // On by default under "bundler", but the build and test configs read the
+    // package version from package.json, so it is stated rather than assumed.
+    "resolveJsonModule": true,
     "lib": ["ES2020", "DOM"],
     "strict": true,
     "noEmit": true,
