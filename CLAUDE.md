@@ -73,10 +73,26 @@ and `pnpm -r` never touch it. Do not add it to the workspace.
 | `pnpm changeset` | Author a changeset |
 
 After any code change run `pnpm check`, `pnpm tsc`, `pnpm test`, `pnpm build` —
-these are exactly the four steps `ci.yml`'s `verify` job runs, in that order.
+these are the first four steps of `ci.yml`'s `verify` job, in that order.
 Its `e2e` job then builds and runs `pnpm test:e2e`; run that too after changing
 the probe, the modes or anything timing-related. If `check` reports fixable
 issues, run `pnpm check:fix` and re-validate all four.
+
+The fifth and last `verify` step is a Semgrep scan of the built
+`packages/*/dist` (`p/javascript` + `p/nodejsscan`, version pinned in the
+step), which fails on any finding: a scanner run on the installed package reads
+the bundle, not `src/`. It is not a `pnpm` script, so run it by hand after
+`pnpm build` when a change could alter what lands in the bundle:
+
+```sh
+uvx semgrep@1.180.0 scan --config p/javascript --config p/nodejsscan \
+  --metrics=off --error --no-git-ignore packages/*/dist
+```
+
+Fix a finding in source rather than suppressing it. A `// nosemgrep` comment
+in `src/` does not reach the bundle (esbuild drops it), and any other scanner
+reports what is in the bundle whatever our CI says. The root `.semgrepignore`
+exists only to stop Semgrep's default list from skipping `dist/`.
 
 Node `^24.15 || >=26` (`.nvmrc`), pnpm via corepack (`packageManager` pins the
 version). The 25 line is deliberately excluded rather than merely untested —
