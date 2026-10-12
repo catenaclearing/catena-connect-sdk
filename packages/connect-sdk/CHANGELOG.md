@@ -1,5 +1,11 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- 261a1d9: The popup's window name and the redirect-mode resume record's id now take their random part from `crypto.getRandomValues` instead of `Math.random`. Neither value was ever a secret, but security scanners flagged the `Math.random` calls in the bundle as a weak random number generator. They no longer do. Behavior is otherwise unchanged.
+
 ## 1.0.0-beta.6
 
 ### Minor Changes
