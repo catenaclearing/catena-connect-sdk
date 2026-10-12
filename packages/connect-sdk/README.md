@@ -630,6 +630,7 @@ without them.
 | `brand_color` | six hex digits | `brandColor` | optional; needs a resolving key |
 | `brand_logo` | an `https` URL | `logoUrl` | optional; needs a resolving key |
 | `brand_logo_dark` | an `https` URL | `logoUrlDark` | optional; needs a resolving key |
+| `sdk_version` | this package's version | set by the package | leave it off a URL you build |
 
 `embed` names the context the flow is opened in: `iframe` for a frame on your
 page, `popup` for a window you open, `redirect` for the current tab. The flow
@@ -644,6 +645,11 @@ carries, including the invitation itself (`?invite=…`, or `?tms_invite=…` fo
 a TMS invitation). The URL must be `https`, except on `localhost`,
 `127.0.0.1` and `[::1]`, for the reasons [`inviteUrl`](#inviteurl) gives. The
 flow ignores parameters it does not recognize.
+
+`sdk_version` tells the flow which release of this package launched it, so
+support can match a session to a release. A URL you build yourself should not
+carry it; its absence is how the flow knows the launch did not come from the
+package.
 
 `brand_color` accepts a leading `#`, but in a URL you write by hand it must be
 encoded as `%23`. `URLSearchParams` does that for you.
@@ -974,7 +980,8 @@ you call or what you receive.
 - The file layout under `dist`, the `sessionStorage` keys the redirect mode
   writes, and anything else you could only reach by inspecting internals.
 - Query parameters already on your invite URL. The package writes its own
-  (the embed key, the mode, and the presentation options you pass), replacing
+  (the embed key, the mode, its own version, and the presentation options you
+  pass), replacing
   any of those already present, and leaves the rest as they are. What the app
   does with the rest is the app's to document. An option this package does
   not know is not forwarded, so a new app parameter arrives as a new option

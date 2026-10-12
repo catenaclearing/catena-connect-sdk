@@ -1,4 +1,7 @@
 import { defineConfig } from "vitest/config";
+import corePackage from "./packages/connect-sdk/package.json" with {
+  type: "json",
+};
 
 // The config is loaded as a module, so `import.meta.url` is its own location.
 // A URL rather than `node:url`, which would need Node's type definitions for
@@ -9,6 +12,10 @@ const coreSource = (file: string): string =>
   );
 
 export default defineConfig({
+  // What tsup defines for the build (`packages/connect-sdk/tsup.config.ts`).
+  define: {
+    __CONNECT_SDK_VERSION__: JSON.stringify(corePackage.version),
+  },
   resolve: {
     // The wrapper's tests import the core by its package name, and the core's
     // manifest points at `dist/`, which CI builds only after the tests have

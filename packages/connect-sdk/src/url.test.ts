@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import packageJson from "../package.json" with { type: "json" };
 import { buildLaunchUrl, connectOrigin, withEmbedMode } from "./url";
+import { SDK_VERSION } from "./version";
 
 const inviteUrl = "https://connect.example.com/invite/abc123";
 const embedKey = "pk_test_key";
@@ -18,6 +20,26 @@ describe("buildLaunchUrl", () => {
 
     expect(params.get("embed_key")).toBe(embedKey);
     expect(params.get("embed")).toBeNull();
+  });
+
+  // The flow can only tell an SDK launch from a hand-built URL, and one
+  // release from another, by what the URL says.
+  it("names the release of this package that built it", () => {
+    const params = paramsOf(buildLaunchUrl({ inviteUrl, embedKey }));
+
+    expect(params.get("sdk_version")).toBe(SDK_VERSION);
+    expect(SDK_VERSION).toBe(packageJson.version);
+  });
+
+  it("overwrites a version the invite URL already carried", () => {
+    const params = paramsOf(
+      buildLaunchUrl({
+        inviteUrl: `${inviteUrl}?sdk_version=0.0.1`,
+        embedKey,
+      })
+    );
+
+    expect(params.getAll("sdk_version")).toEqual([SDK_VERSION]);
   });
 
   it("keeps the invite URL's own path and host", () => {
