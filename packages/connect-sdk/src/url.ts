@@ -1,6 +1,7 @@
 /** The caller's invite URL in, the launch URL out, plus the origin we trust. */
 
 import type { CatenaConnectOptions } from "./types";
+import { SDK_VERSION } from "./version";
 import {
   BRAND_COLOR_PARAM,
   BRAND_LOGO_DARK_PARAM,
@@ -8,6 +9,7 @@ import {
   EMBED_KEY_PARAM,
   EMBED_PARAM,
   type EmbedMode,
+  SDK_VERSION_PARAM,
   THEME_PARAM,
   VARIANT_PARAM,
 } from "./wire";
@@ -90,6 +92,7 @@ export function buildLaunchUrl(options: LaunchParams): string {
   const url = new URL(options.inviteUrl);
 
   url.searchParams.set(EMBED_KEY_PARAM, options.embedKey);
+  url.searchParams.set(SDK_VERSION_PARAM, SDK_VERSION);
 
   setIfGiven(url, VARIANT_PARAM, options.variant);
   setIfGiven(url, THEME_PARAM, options.theme);

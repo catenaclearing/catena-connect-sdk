@@ -45,6 +45,7 @@ import {
   EVENT_SUCCESS,
   MESSAGE_SOURCE,
   PROBE_PATH,
+  SDK_VERSION_PARAM,
   THEME_PARAM,
   VARIANT_PARAM,
 } from "./wire";
@@ -53,6 +54,7 @@ export {
   BUDGET_MS as PROBE_BUDGET_MS,
   LOAD_BUDGET_MS as PROBE_LOAD_BUDGET_MS,
 } from "./probe";
+export { SDK_VERSION } from "./version";
 
 export {
   BRAND_COLOR_PARAM,
@@ -79,6 +81,7 @@ export {
   MESSAGE_SOURCE,
   type MessageRouting,
   PROBE_PATH,
+  SDK_VERSION_PARAM,
   THEME_PARAM,
   VARIANT_PARAM,
   withEmbedMode,

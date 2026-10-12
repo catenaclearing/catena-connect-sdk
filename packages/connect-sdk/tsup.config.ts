@@ -1,4 +1,5 @@
 import { defineConfig } from "tsup";
+import packageJson from "./package.json" with { type: "json" };
 
 export default defineConfig({
   entry: ["src/index.ts", "src/contract.ts"],
@@ -12,4 +13,8 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2020",
+  // `src/version.ts`: the one field of the manifest the bundle needs.
+  define: {
+    __CONNECT_SDK_VERSION__: JSON.stringify(packageJson.version),
+  },
 });

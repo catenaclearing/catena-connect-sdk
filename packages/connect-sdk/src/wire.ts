@@ -35,6 +35,13 @@ export type EmbedMode =
 /** The caller's embed key. The app resolves it against registered origins. */
 export const EMBED_KEY_PARAM = "embed_key";
 
+/**
+ * The release of this package that built the launch URL. Lets the flow tell
+ * one release from another, and an SDK launch from a URL built by hand,
+ * which never carries it.
+ */
+export const SDK_VERSION_PARAM = "sdk_version";
+
 /** Presentation and branding. All forwarded unvalidated. */
 export const VARIANT_PARAM = "variant";
 export const THEME_PARAM = "theme";
