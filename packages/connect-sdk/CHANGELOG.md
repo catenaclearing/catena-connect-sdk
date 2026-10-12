@@ -1,5 +1,11 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.6
+
+### Minor Changes
+
+- 2799f65: The launch URL now carries `sdk_version`, set to this package's version, so the flow can tell which release launched a session. Nothing changes for callers, and a launch URL you build by hand should leave it off. The `@catenaclearing/connect-sdk/contract` entry adds `SDK_VERSION` and `SDK_VERSION_PARAM`.
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
