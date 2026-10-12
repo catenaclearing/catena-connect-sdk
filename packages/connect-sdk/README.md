@@ -980,7 +980,8 @@ you call or what you receive.
 - The file layout under `dist`, the `sessionStorage` keys the redirect mode
   writes, and anything else you could only reach by inspecting internals.
 - Query parameters already on your invite URL. The package writes its own
-  (the embed key, the mode, and the presentation options you pass), replacing
+  (the embed key, the mode, its own version, and the presentation options you
+  pass), replacing
   any of those already present, and leaves the rest as they are. What the app
   does with the rest is the app's to document. An option this package does
   not know is not forwarded, so a new app parameter arrives as a new option
