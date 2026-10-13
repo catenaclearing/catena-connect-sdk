@@ -64,6 +64,7 @@ describe("CatenaConnect", () => {
         inviteUrl={inviteUrl}
         embedKey={embedKey}
         variant="card"
+        brandSecondary="5bc2e7"
         title="Connect a provider"
       />
     );
@@ -75,6 +76,8 @@ describe("CatenaConnect", () => {
     expect(host.hasAttribute("variant")).toBe(false);
     expect(host.title).toBe("Connect a provider");
     expect(params.get("variant")).toBe("card");
+    expect(host.hasAttribute("brandsecondary")).toBe(false);
+    expect(params.get("brand_secondary")).toBe("5bc2e7");
     expect(params.has("title")).toBe(false);
   });
 
