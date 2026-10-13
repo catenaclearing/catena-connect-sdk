@@ -6,6 +6,7 @@ import {
   BRAND_COLOR_PARAM,
   BRAND_LOGO_DARK_PARAM,
   BRAND_LOGO_PARAM,
+  BRAND_SECONDARY_PARAM,
   EMBED_KEY_PARAM,
   EMBED_PARAM,
   type EmbedMode,
@@ -30,6 +31,7 @@ type LaunchParams = Pick<
   | "logoUrl"
   | "logoUrlDark"
   | "brandColor"
+  | "brandSecondary"
 >;
 
 /**
@@ -99,6 +101,7 @@ export function buildLaunchUrl(options: LaunchParams): string {
   setIfGiven(url, BRAND_LOGO_PARAM, options.logoUrl);
   setIfGiven(url, BRAND_LOGO_DARK_PARAM, options.logoUrlDark);
   setIfGiven(url, BRAND_COLOR_PARAM, options.brandColor);
+  setIfGiven(url, BRAND_SECONDARY_PARAM, options.brandSecondary);
 
   return url.toString();
 }
