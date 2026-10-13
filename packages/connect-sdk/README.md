@@ -162,7 +162,7 @@ the flow's last screen, with no button back to your site.
 | `container` | `HTMLElement` | no |
 | `variant` | `"full" \| "card" \| string` | no |
 | `theme` | `"light" \| "dark" \| string` | no |
-| `logoUrl`, `logoUrlDark`, `brandColor` | `string` | no |
+| `logoUrl`, `logoUrlDark`, `brandColor`, `brandSecondary` | `string` | no |
 | `onOpen`, `onConnection`, `onConnectionDeleted`, `onSuccess`, `onExit`, `onClose` | callbacks | no |
 
 Returns `{ destroy(): void }`.
@@ -203,8 +203,8 @@ its events are delivered either way.
 
 ### Presentation options
 
-`variant`, `theme`, `brandColor`, `logoUrl` and `logoUrlDark` control how the
-flow looks. All five are optional. Omit them and the flow renders with the
+`variant`, `theme`, `brandColor`, `brandSecondary`, `logoUrl` and
+`logoUrlDark` control how the flow looks. All six are optional. Omit them and the flow renders with the
 branding configured on your account.
 
 ```js
@@ -214,6 +214,7 @@ open({
   variant: "card",
   theme: "dark",
   brandColor: "#d1004b",
+  brandSecondary: "#5bc2e7",
   logoUrl: "https://cdn.example.com/logo.svg",
   logoUrlDark: "https://cdn.example.com/logo-dark.svg",
   onSuccess: ({ connectionIds }) => continueYourFlow(connectionIds),
@@ -281,12 +282,24 @@ color are derived to stay readable, so a near-white or near-black value still
 produces legible buttons.
 
 The progress indicator shows this color until the user has an active
-connection, then switches to the flow's green success color. The buttons keep
-the brand color throughout.
+connection, then switches to the success color: `brandSecondary` if you set
+one, the flow's green if not. The buttons keep the brand color throughout.
 
 Anything else is ignored and the color configured on your account applies:
 three-digit shorthand, eight digits with alpha, named colors, `rgb()` and
 `hsl()`.
+
+#### `brandSecondary`
+
+The flow's success color, in both light and dark. It replaces the green that
+marks a connection: the progress indicator once the user has one, the border
+and marker on a connected provider, the "Connected" badges and the success
+messages. Lighter and darker shades for the badges and messages are derived
+from it.
+
+Same format as `brandColor`, and the same values are ignored. It is
+independent of `brandColor`: omit it and the green stays, whatever
+`brandColor` is.
 
 #### `logoUrl` and `logoUrlDark`
 
@@ -306,9 +319,9 @@ showing a broken image or falling back to your account's logo.
 
 #### Branding needs your embed key to resolve
 
-`brandColor`, `logoUrl` and `logoUrlDark` are honored only when the launch's
-embed key resolves to a registered, active key. With an unknown or revoked key
-all three are ignored and the flow uses the branding configured on your
+`brandColor`, `brandSecondary`, `logoUrl` and `logoUrlDark` are honored only
+when the launch's embed key resolves to a registered, active key. With an
+unknown or revoked key all four are ignored and the flow uses the branding configured on your
 account. `variant` and `theme` need no key.
 
 ### `destroy()`
@@ -628,6 +641,7 @@ without them.
 | `variant` | `full` or `card` | `variant` | optional |
 | `theme` | `light` or `dark` | `theme` | optional |
 | `brand_color` | six hex digits | `brandColor` | optional; needs a resolving key |
+| `brand_secondary` | six hex digits | `brandSecondary` | optional; needs a resolving key |
 | `brand_logo` | an `https` URL | `logoUrl` | optional; needs a resolving key |
 | `brand_logo_dark` | an `https` URL | `logoUrlDark` | optional; needs a resolving key |
 | `sdk_version` | this package's version | set by the package | leave it off a URL you build |
@@ -651,12 +665,12 @@ support can match a session to a release. A URL you build yourself should not
 carry it; its absence is how the flow knows the launch did not come from the
 package.
 
-`brand_color` accepts a leading `#`, but in a URL you write by hand it must be
-encoded as `%23`. `URLSearchParams` does that for you.
+`brand_color` and `brand_secondary` accept a leading `#`, but in a URL you
+write by hand it must be encoded as `%23`. `URLSearchParams` does that for you.
 
-[Presentation options](#presentation-options) describes what the five
+[Presentation options](#presentation-options) describes what the six
 optional parameters do, and the same rules hold here: the flow validates the
-values, an invalid one falls back to its default on its own, and the three
+values, an invalid one falls back to its default on its own, and the four
 branding parameters apply only when the embed key resolves.
 
 ### A plain iframe, link or window
@@ -919,11 +933,11 @@ else ([`resume(options)`](#resumeoptions),
 [When you receive nothing](#when-you-receive-nothing)).
 
 **The flow renders but your branding is ignored.** The embed key does not
-resolve to a registered, active key, so `brandColor`, `logoUrl` and
-`logoUrlDark` are dropped and the branding configured on your account applies
+resolve to a registered, active key, so `brandColor`, `brandSecondary`,
+`logoUrl` and `logoUrlDark` are dropped and the branding configured on your account applies
 ([Branding needs your embed key to
 resolve](#branding-needs-your-embed-key-to-resolve)). Or a value was rejected:
-`brandColor` must be exactly six hex digits, and logo URLs must be absolute
+`brandColor` and `brandSecondary` must be exactly six hex digits, and logo URLs must be absolute
 `https`. A logo that fails to load leaves its slot empty. With
 `variant: "card"` the logo shows only on the consent card.
 
@@ -962,7 +976,7 @@ you call or what you receive.
   `connectionId`, `connectionIds` and `reason`.
 - For a page that launches the flow from a URL it builds itself: the launch
   URL parameter names `embed`, `embed_key`, `variant`, `theme`, `brand_color`,
-  `brand_logo` and `brand_logo_dark`, and the three `embed` values `iframe`,
+  `brand_secondary`, `brand_logo` and `brand_logo_dark`, and the three `embed` values `iframe`,
   `popup` and `redirect`.
 
 ### What it does not cover

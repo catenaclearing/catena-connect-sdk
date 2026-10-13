@@ -130,6 +130,14 @@ export interface CatenaConnectOptions extends ConnectCallbacks {
    * `#`. Honored only when the embed key resolves.
    */
   brandColor?: string;
+  /**
+   * The flow's success color as six hex digits, with or without a leading
+   * `#`. Replaces the green that marks a connection: the progress indicator
+   * once the user has one, connected providers and success messages. Omit it
+   * and the green stays, whatever `brandColor` is. Honored only when the embed
+   * key resolves.
+   */
+  brandSecondary?: string;
 }
 
 /** Which of your two destination pages `resume()` was called on. */

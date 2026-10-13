@@ -154,7 +154,7 @@ can go straight into an `onClick` or a dependency list.
 | `preload` | `boolean` | no, default `true` |
 | `variant` | `"full" \| "card" \| string` | no |
 | `theme` | `"light" \| "dark" \| string` | no |
-| `logoUrl`, `logoUrlDark`, `brandColor` | `string` | no |
+| `logoUrl`, `logoUrlDark`, `brandColor`, `brandSecondary` | `string` | no |
 | `onOpen`, `onConnection`, `onConnectionDeleted`, `onSuccess`, `onExit`, `onClose` | callbacks | no |
 
 Every option other than `inviteUrl`, `container` and `preload` is the core's,

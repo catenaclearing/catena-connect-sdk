@@ -48,6 +48,7 @@ export const THEME_PARAM = "theme";
 export const BRAND_LOGO_PARAM = "brand_logo";
 export const BRAND_LOGO_DARK_PARAM = "brand_logo_dark";
 export const BRAND_COLOR_PARAM = "brand_color";
+export const BRAND_SECONDARY_PARAM = "brand_secondary";
 
 /**
  * The prefix every flow window's name starts with. Each launch adds its own

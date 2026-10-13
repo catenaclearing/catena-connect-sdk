@@ -37,6 +37,7 @@ const OPTION_KEYS = {
   logoUrl: true,
   logoUrlDark: true,
   brandColor: true,
+  brandSecondary: true,
   onOpen: true,
   onConnection: true,
   onConnectionDeleted: true,

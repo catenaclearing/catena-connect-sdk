@@ -59,6 +59,7 @@ describe("buildLaunchUrl", () => {
         logoUrl: "https://host.example.com/logo.svg",
         logoUrlDark: "https://host.example.com/logo-dark.svg",
         brandColor: "#ff6600",
+        brandSecondary: "#5bc2e7",
       })
     );
 
@@ -69,6 +70,7 @@ describe("buildLaunchUrl", () => {
       "https://host.example.com/logo-dark.svg"
     );
     expect(params.get("brand_color")).toBe("#ff6600");
+    expect(params.get("brand_secondary")).toBe("#5bc2e7");
   });
 
   it("forwards branding values a validator would have rejected, unchanged", () => {
@@ -84,12 +86,14 @@ describe("buildLaunchUrl", () => {
         logoUrl: "/assets/logo.svg",
         logoUrlDark: "logo-dark.svg",
         brandColor: "rebeccapurple",
+        brandSecondary: "teal",
       })
     );
 
     expect(params.get("brand_logo")).toBe("/assets/logo.svg");
     expect(params.get("brand_logo_dark")).toBe("logo-dark.svg");
     expect(params.get("brand_color")).toBe("rebeccapurple");
+    expect(params.get("brand_secondary")).toBe("teal");
   });
 
   it("forwards a brand color that is not a hex triple at all", () => {
@@ -108,6 +112,18 @@ describe("buildLaunchUrl", () => {
     expect(params.has("brand_logo")).toBe(false);
     expect(params.has("brand_logo_dark")).toBe(false);
     expect(params.has("brand_color")).toBe(false);
+    expect(params.has("brand_secondary")).toBe(false);
+  });
+
+  it("does not derive a success color from the brand color", () => {
+    // The app keeps its green when only the brand color is given, so nothing
+    // here may fill one in from the other.
+    const params = paramsOf(
+      buildLaunchUrl({ inviteUrl, embedKey, brandColor: "#ff6600" })
+    );
+
+    expect(params.get("brand_color")).toBe("#ff6600");
+    expect(params.has("brand_secondary")).toBe(false);
   });
 
   it("forwards a presentation value this version has never heard of, unchanged", () => {
