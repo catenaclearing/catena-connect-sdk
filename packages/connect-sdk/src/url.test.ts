@@ -115,6 +115,17 @@ describe("buildLaunchUrl", () => {
     expect(params.has("brand_secondary")).toBe(false);
   });
 
+  it("does not derive a success color from the brand color", () => {
+    // The app keeps its green when only the brand color is given, so nothing
+    // here may fill one in from the other.
+    const params = paramsOf(
+      buildLaunchUrl({ inviteUrl, embedKey, brandColor: "#ff6600" })
+    );
+
+    expect(params.get("brand_color")).toBe("#ff6600");
+    expect(params.has("brand_secondary")).toBe(false);
+  });
+
   it("forwards a presentation value this version has never heard of, unchanged", () => {
     // The whole point of forwarding rather than validating: a caller on an
     // installed version can use a value the app started accepting after it.
