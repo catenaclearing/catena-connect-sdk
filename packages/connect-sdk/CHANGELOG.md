@@ -1,5 +1,11 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.8
+
+### Minor Changes
+
+- 9fbfdcd: Add a `brandSecondary` option that sets the flow's success color, sent as `brand_secondary` on the launch URL. It replaces the green that marks a connection, including the progress indicator once the user has one. Omit it and the green stays. Like `brandColor`, it is honored only when the embed key resolves.
+
 ## 1.0.0-beta.7
 
 ### Patch Changes
