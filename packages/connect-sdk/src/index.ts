@@ -404,8 +404,10 @@ function destroy(launch: Launch): void {
  *   launching tab while the launch was in flight inherits a copy of its session
  *   storage, so it can report the same outcome again.
  *
- * Closing both gaps is the same change, and it is the app's to make: appending
- * the outcome to the destination URL it navigates to.
+ * The query string the app appends does not close either gap. It says how the
+ * flow ended, not which tab launched it, so a stale record would still be
+ * consumed by the first page that calls this. Closing them needs a marker on
+ * the destination URL tying it to this launch, and that is the app's to add.
  */
 export function resume(options: ResumeOptions): void {
   // Neither declared outcome, which in untyped JavaScript means a typo.
@@ -425,10 +427,7 @@ export function resume(options: ResumeOptions): void {
       // navigation to carry the identifiers across.
       options.onSuccess?.({ connectionIds: [] });
     } else {
-      // No reason to forward. The app reports one over the message channel that
-      // redirect mode does not have, and inventing a string here would put
-      // words the app never said into the caller's logs.
-      options.onExit?.({ reason: "" });
+      options.onExit?.({ reason: exitReason() });
     }
   } finally {
     // The dismissal is not the outcome callback's to suppress. On the other two
@@ -437,6 +436,22 @@ export function resume(options: ResumeOptions): void {
     // three. The caller's exception still propagates; this only orders the
     // two.
     options.onClose?.({});
+  }
+}
+
+/**
+ * The reason the app put on the failure URL, read the way the message channel
+ * words it: the decline reason when the user gave one, otherwise the status.
+ * So the same exit reports the same reason whichever mode carried it.
+ *
+ * Empty when the URL carries neither, rather than a word the app never said.
+ */
+function exitReason(): string {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("skip_reason") || params.get("status") || "";
+  } catch {
+    return "";
   }
 }
 

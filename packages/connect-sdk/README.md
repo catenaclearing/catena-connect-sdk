@@ -532,9 +532,12 @@ It emits the terminal callback you declared (`onSuccess` for `"success"`,
 `onExit` for `"exit"`), followed by `onClose`. Never `onOpen`: the flow
 reported itself ready on a page the navigation already destroyed.
 
-`resume()` always gives empty `connectionIds` and `reason`. Read the query
-parameters on the page if you need them. Your connection webhooks are the
-record, as they are on every path.
+`onExit` gets the same `reason` the other modes report for the same exit:
+the URL's `skip_reason` when there is one, otherwise its `status` (for
+example `failure` or `integration-requested`). It is empty only if the URL
+carries neither. `connectionIds` is always empty, because nothing on the URL
+lists them. Read `tsp_count` from the query yourself if you need it. Your
+connection webhooks are the record, as they are on every path.
 
 With no launch in flight, or an expired one, `resume()` does nothing, so it
 can sit at the top of a destination page unconditionally.

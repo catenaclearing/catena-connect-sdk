@@ -323,11 +323,82 @@ describe("resuming a redirected launch", () => {
 
     resume({ outcome: "exit", onExit, onClose });
 
-    // No reason is forwarded: the app reports one over a channel redirect
-    // mode does not have, and inventing a string would put words it never
-    // said into the caller's logs.
+    // The stubbed location carries no query: nothing to forward, and nothing
+    // invented in its place.
     expect(onExit).toHaveBeenCalledWith({ reason: "" });
     expect(order).toEqual(["exit", "close"]);
+  });
+
+  describe("forwarding the reason the failure URL carries", () => {
+    /** Arrive on the failure page with this query string. */
+    function arriveWith(search: string): void {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { search },
+      });
+    }
+
+    it("forwards the status, as the message channel words it", async () => {
+      await launchIntoRedirect();
+      arriveWith("?status=integration-requested&tsp_count=0");
+      const onExit = vi.fn();
+
+      resume({ outcome: "exit", onExit });
+
+      expect(onExit).toHaveBeenCalledWith({
+        reason: "integration-requested",
+      });
+    });
+
+    it("prefers the decline reason when the user gave one", async () => {
+      await launchIntoRedirect();
+      arriveWith("?status=failure&skip_reason=not_now");
+      const onExit = vi.fn();
+
+      resume({ outcome: "exit", onExit });
+
+      expect(onExit).toHaveBeenCalledWith({ reason: "not_now" });
+    });
+
+    it("falls back to the status when the decline reason is empty", async () => {
+      await launchIntoRedirect();
+      arriveWith("?status=failure&skip_reason=");
+      const onExit = vi.fn();
+
+      resume({ outcome: "exit", onExit });
+
+      expect(onExit).toHaveBeenCalledWith({ reason: "failure" });
+    });
+
+    it("forwards an empty reason when the URL cannot be read", async () => {
+      await launchIntoRedirect();
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+          get search(): string {
+            throw new Error("no access");
+          },
+        },
+      });
+      const order: string[] = [];
+      const onExit = vi.fn(() => order.push("exit"));
+      const onClose = vi.fn(() => order.push("close"));
+
+      resume({ outcome: "exit", onExit, onClose });
+
+      expect(onExit).toHaveBeenCalledWith({ reason: "" });
+      expect(order).toEqual(["exit", "close"]);
+    });
+
+    it("reads nothing into a success", async () => {
+      await launchIntoRedirect();
+      arriveWith("?status=success&tsp_count=2");
+      const onSuccess = vi.fn();
+
+      resume({ outcome: "success", onSuccess });
+
+      expect(onSuccess).toHaveBeenCalledWith({ connectionIds: [] });
+    });
   });
 
   it("delivers the dismissal even when the outcome callback throws", async () => {
