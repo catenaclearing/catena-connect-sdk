@@ -425,7 +425,7 @@ describe("the overlay's way out", () => {
   }
 
   it("gives the overlay a named close button after the flow's panel", () => {
-    createSurface(undefined, vi.fn());
+    createSurface(undefined, { onDismiss: vi.fn() });
 
     const close = closeButton(document.body);
     expect(close?.getAttribute("aria-label")).toBe("Close");
@@ -438,7 +438,7 @@ describe("the overlay's way out", () => {
 
   it("asks for the dismissal on a click, and removes nothing itself", () => {
     const onDismiss = vi.fn();
-    createSurface(undefined, onDismiss);
+    createSurface(undefined, { onDismiss });
 
     closeButton(document.body)?.click();
 
@@ -448,7 +448,7 @@ describe("the overlay's way out", () => {
 
   it("asks for the dismissal on Escape", () => {
     const onDismiss = vi.fn();
-    createSurface(undefined, onDismiss);
+    createSurface(undefined, { onDismiss });
 
     const event = press(rootIn(document.body), "Escape");
 
@@ -457,7 +457,7 @@ describe("the overlay's way out", () => {
   });
 
   it("keeps the Escape it acted on from reaching the host page", () => {
-    createSurface(undefined, () => {});
+    createSurface(undefined, { onDismiss: () => {} });
     const heard = vi.fn();
     document.addEventListener("keydown", heard);
 
@@ -478,7 +478,7 @@ describe("the overlay's way out", () => {
 
   it("hears Escape from a control inside the overlay", () => {
     const onDismiss = vi.fn();
-    const surface = createSurface(undefined, onDismiss);
+    const surface = createSurface(undefined, { onDismiss });
     surface.showContinue(() => {});
 
     press(surface.mount.querySelector("button.continue"), "Escape");
@@ -488,7 +488,7 @@ describe("the overlay's way out", () => {
 
   it("ignores every other key", () => {
     const onDismiss = vi.fn();
-    createSurface(undefined, onDismiss);
+    createSurface(undefined, { onDismiss });
 
     press(rootIn(document.body), "Enter");
     press(rootIn(document.body), "Esc");
@@ -502,7 +502,7 @@ describe("the overlay's way out", () => {
     const container = document.createElement("div");
     document.body.append(container);
     const onDismiss = vi.fn();
-    createSurface(container, onDismiss);
+    createSurface(container, { onDismiss });
 
     press(rootIn(container), "Escape");
 
@@ -514,6 +514,54 @@ describe("the overlay's way out", () => {
     createSurface();
 
     expect(closeButton(document.body)).toBeNull();
+  });
+});
+
+describe("following the launch's theme", () => {
+  function rootIn(parent: ParentNode): HTMLElement | null {
+    return hostIn(parent)?.shadowRoot?.querySelector(".root") ?? null;
+  }
+
+  it("marks a forced dark theme on its root", () => {
+    createSurface(undefined, { theme: "dark" });
+
+    expect(rootIn(document.body)?.dataset.theme).toBe("dark");
+  });
+
+  it("marks a forced light theme, so a dark device does not override it", () => {
+    createSurface(undefined, { theme: "light" });
+
+    expect(rootIn(document.body)?.dataset.theme).toBe("light");
+  });
+
+  it("leaves the choice to the device when no theme is forced", () => {
+    createSurface();
+
+    expect(rootIn(document.body)?.hasAttribute("data-theme")).toBe(false);
+  });
+
+  it("treats a value it does not know as no theme at all", () => {
+    // The flow ignores one too, and falls back to the user's own preference.
+    createSurface(undefined, { theme: "sepia" });
+
+    expect(rootIn(document.body)?.hasAttribute("data-theme")).toBe(false);
+  });
+
+  it("follows the theme inline as well as in the overlay", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    createSurface(container, { theme: "dark" });
+
+    expect(rootIn(container)?.dataset.theme).toBe("dark");
+  });
+
+  it("draws its colors from the theme rather than fixed values", () => {
+    createSurface();
+    const css = cssOf(hostIn(document.body)?.shadowRoot);
+
+    expect(css).toContain('[data-theme="dark"]');
+    expect(css).toContain("prefers-color-scheme: dark");
+    expect(css).not.toMatch(/background: #ffffff/);
   });
 });
 

@@ -217,6 +217,11 @@ in, such as a modal inside a same-origin frame of your page, with `open()`
 called from the top window. The flow is built in the container's document and
 its events are delivered either way.
 
+The surface fills the container, and it is at least 480px tall. Give the
+container a height of its own, at least that much. In a shorter container the
+surface overflows it, and in one with no height set the surface is exactly
+480px.
+
 ### Presentation options
 
 `variant`, `theme`, `brandColor`, `brandSecondary`, `logoUrl` and
@@ -288,6 +293,10 @@ their device preference, then light.
 There is no `"auto"`. The iframe is a separate document and cannot see your
 page's theme. If you want the flow to match your surface, say which one you
 are in. If you want it to follow the user's device, pass nothing.
+
+The package's own surface follows the same setting: the loading state, the
+Continue button and the overlay's close button are dark under `"dark"`, light
+under `"light"`, and follow the device when you pass nothing.
 
 #### `brandColor`
 
@@ -732,16 +741,15 @@ branding parameters apply only when the embed key resolves.
 The examples use `https://connect.example.com/?invite=YOUR_INVITE_ID` where
 your invitation URL goes.
 
-A frame on your page, with `embed=iframe`. A cross-origin frame is denied the
-clipboard by default. Grant `clipboard-write`, which is what the package
-grants, and nothing more. Do not add `sandbox`: the flow opens its own window
-for some providers' sign-in, and a sandbox without `allow-popups` blocks it.
+A frame on your page, with `embed=iframe`. It needs no `allow` attribute: the
+flow uses nothing a cross-origin frame is denied by default. Do not add
+`sandbox`: the flow opens its own window for some providers' sign-in, and a
+sandbox without `allow-popups` blocks it.
 
 ```html
 <iframe
   src="https://connect.example.com/?invite=YOUR_INVITE_ID&embed_key=YOUR_EMBED_KEY&embed=iframe"
   title="Catena Connect"
-  allow="clipboard-write"
 ></iframe>
 ```
 

@@ -225,6 +225,17 @@ describe("the overlay's close button", () => {
   });
 });
 
+describe("the surface's theme", () => {
+  it("takes the theme the launch forces", () => {
+    launch({ theme: "dark" });
+
+    const root = surfacesIn(document.body)[0]?.shadowRoot?.querySelector(
+      ".root"
+    ) as HTMLElement | null;
+    expect(root?.dataset.theme).toBe("dark");
+  });
+});
+
 describe("destroy", () => {
   it("removes the surface", () => {
     const handle = launch();

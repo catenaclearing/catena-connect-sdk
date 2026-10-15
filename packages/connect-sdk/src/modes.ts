@@ -12,12 +12,6 @@ import type { Surface } from "./surface";
 import { WINDOW_NAME } from "./wire";
 
 /**
- * What the flow is granted inside the frame, and nothing more. A cross-origin
- * frame is denied these by default, so every entry has to earn its place.
- */
-const FRAME_ALLOW = "clipboard-write";
-
-/**
  * How long a loaded frame waits for the flow's `open` before the launch gives
  * up on it and offers the window instead.
  *
@@ -56,8 +50,9 @@ export function mountFrame(
   // to keep it working re-grants everything it removed. There is no security
   // to give up here either — the framed origin is ours, and the app already
   // constrains who may frame it.
-  frame.setAttribute("allow", FRAME_ALLOW);
-
+  //
+  // No `allow` either. Every feature a cross-origin frame is denied by
+  // default would have to earn its place there, and the flow uses none.
   surface.mount.append(frame);
   surface.hold();
   return frame;

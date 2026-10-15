@@ -227,10 +227,11 @@ describe("the frame the flow runs in", () => {
     expect(frame.hasAttribute("sandbox")).toBe(false);
   });
 
-  it("grants only what the flow needs", () => {
+  it("grants nothing a cross-origin frame is denied by default", () => {
+    // The flow uses no such feature, so there is nothing to grant.
     const frame = mountFrame(createSurface(), LAUNCH_URL);
 
-    expect(frame.getAttribute("allow")).toBe("clipboard-write");
+    expect(frame.hasAttribute("allow")).toBe(false);
   });
 
   it("fills its surface and carries no sizing of its own", () => {
