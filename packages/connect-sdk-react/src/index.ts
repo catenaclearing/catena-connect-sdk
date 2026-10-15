@@ -30,6 +30,7 @@ export type {
 } from "@catenaclearing/connect-sdk";
 export { CatenaConnect, type CatenaConnectProps } from "./catena-connect";
 export {
+  type UseCatenaConnectOpenOptions,
   type UseCatenaConnectOptions,
   type UseCatenaConnectResult,
   useCatenaConnect,

@@ -1,4 +1,4 @@
-import { act, useRef } from "react";
+import { act, useRef, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -57,6 +57,36 @@ function InlineLauncher({
         Connect
       </button>
     </>
+  );
+}
+
+/**
+ * The fetch-on-click pattern: the invitation is fetched when the button is
+ * pressed, stored in state, and launched in the same handler, before the
+ * state has rendered. `launch` is the call under test.
+ */
+function FetchOnClick({
+  initial,
+  fetched,
+  launch,
+}: {
+  initial: string | null;
+  fetched: string;
+  launch: (result: UseCatenaConnectResult, url: string) => void;
+}) {
+  const [url, setUrl] = useState(initial);
+  const result = useCatenaConnect({ inviteUrl: url, embedKey });
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        const next = await Promise.resolve(fetched);
+        setUrl(next);
+        launch(result, next);
+      }}
+    >
+      Connect
+    </button>
   );
 }
 
@@ -335,6 +365,80 @@ describe("useCatenaConnect", () => {
     expect(surfacesIn(document.body)).toHaveLength(0);
   });
 
+  it("launches with an invite URL passed to openWith() before it renders", async () => {
+    const fetched = `${ORIGIN}/invite/def456`;
+    const root = render(
+      <FetchOnClick
+        initial={inviteUrl}
+        fetched={fetched}
+        launch={(result, url) => result.openWith({ inviteUrl: url })}
+      />
+    );
+
+    await act(async () => {
+      root.container.querySelector("button")?.click();
+    });
+    await settled();
+
+    const [surface] = surfacesIn(document.body);
+    expect(frameIn(surface).src).toContain("/invite/def456");
+  });
+
+  it("launches the rendered invite URL from open() in the handler that set a new one", async () => {
+    const root = render(
+      <FetchOnClick
+        initial={inviteUrl}
+        fetched={`${ORIGIN}/invite/def456`}
+        launch={(result) => result.open()}
+      />
+    );
+
+    await act(async () => {
+      root.container.querySelector("button")?.click();
+    });
+    await settled();
+
+    const [surface] = surfacesIn(document.body);
+    expect(frameIn(surface).src).toContain("/invite/abc123");
+  });
+
+  it("keeps the rendered options that openWith() is not given", async () => {
+    const seen: UseCatenaConnectResult[] = [];
+    render(
+      <Launcher
+        inviteUrl={null}
+        embedKey={embedKey}
+        report={(r) => seen.push(r)}
+      />
+    );
+
+    act(() => {
+      seen[0].openWith({ inviteUrl });
+    });
+    await settled();
+
+    const [surface] = surfacesIn(document.body);
+    const src = frameIn(surface).src;
+    expect(src).toContain("/invite/abc123");
+    expect(src).toContain(embedKey);
+  });
+
+  it("throws from openWith() when it is given an absent invite URL", () => {
+    const seen: UseCatenaConnectResult[] = [];
+    render(
+      <Launcher
+        inviteUrl={inviteUrl}
+        embedKey={embedKey}
+        report={(r) => seen.push(r)}
+      />
+    );
+
+    expect(() => seen[0].openWith({ inviteUrl: undefined })).toThrow(
+      /inviteUrl/
+    );
+    expect(surfacesIn(document.body)).toHaveLength(0);
+  });
+
   it("treats destroy() with nothing launched as a no-op", () => {
     const seen: UseCatenaConnectResult[] = [];
     render(
@@ -348,7 +452,7 @@ describe("useCatenaConnect", () => {
     expect(() => seen[0].destroy()).not.toThrow();
   });
 
-  it("returns the same open and destroy functions across renders", () => {
+  it("returns the same open, openWith and destroy functions across renders", () => {
     const seen: UseCatenaConnectResult[] = [];
     const root = render(
       <Launcher
@@ -370,6 +474,7 @@ describe("useCatenaConnect", () => {
 
     expect(seen).toHaveLength(2);
     expect(seen[1].open).toBe(seen[0].open);
+    expect(seen[1].openWith).toBe(seen[0].openWith);
     expect(seen[1].destroy).toBe(seen[0].destroy);
   });
 });
