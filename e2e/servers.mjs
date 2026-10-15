@@ -217,7 +217,15 @@ function connect(req, res) {
   }
 
   if (url.pathname.startsWith("/i/")) {
-    send(200, "text/html", launchPage);
+    // `flow=refused` is the app refusing to be framed after the probe said
+    // yes. A browser ignores `frame-ancestors` in a window of its own, so the
+    // same page still runs in the popup.
+    const s = scenario(url.searchParams.get("embed_key"));
+    const headers =
+      s.flow === "refused"
+        ? { "content-security-policy": "frame-ancestors 'none'" }
+        : {};
+    send(200, "text/html", launchPage, headers);
     return;
   }
 

@@ -243,6 +243,29 @@ test.describe("a probe that never answers", () => {
   );
 });
 
+test.describe("a flow that refuses its frame", () => {
+  test(
+    "offers the window about eight seconds after the frame loads",
+    FRAMED,
+    async ({ page }) => {
+      // The probe says yes, then the flow's own page refuses to be framed.
+      // The browser still fires `load` for its error page, and nothing posts.
+      await partnerPage(page);
+      const outcome = await launch(page, key("flow=refused"));
+
+      expect(outcome.mode).toBe("continue");
+      expect(outcome.ms).toBeGreaterThanOrEqual(7800);
+      expect(outcome.ms).toBeLessThan(12000);
+
+      await Promise.all([
+        page.waitForEvent("popup"),
+        page.getByRole("button", { name: "Continue" }).click(),
+      ]);
+      await expect.poll(() => events(page)).toContain("open");
+    }
+  );
+});
+
 test.describe("a browser that refuses the cookie", () => {
   test("offers the window on a fast network", async ({ page, browserName }) => {
     // The other half of the skip above: where the browser will not carry the

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { open, preload } from "./index";
-import { mountFrame, openPopup, REVEAL_GRACE_MS, watchClosed } from "./modes";
+import { mountFrame, OPEN_GRACE_MS, openPopup, watchClosed } from "./modes";
 import { BUDGET_MS, resolvedVerdict } from "./probe";
 import { createSurface } from "./surface";
 
@@ -335,22 +335,76 @@ describe("launching on a supported verdict", () => {
     expect(held()).toBe(true);
   });
 
-  it("shows the frame anyway when no open follows its load", async () => {
-    // An error page in the frame, or an app that cannot reach this page,
-    // never posts `open`. The user gets whatever the frame shows rather than
-    // a spinner with nothing behind it.
+  it("offers the window when no open follows its load", async () => {
+    // A frame the app refuses still loads, as the browser's error page, and
+    // never posts `open`. Neither does a page that fails before the flow
+    // mounts. Showing the frame would show the user that page, so they are
+    // offered the window instead.
     const { origin, inviteUrl } = nextInvite();
     handles.push(open({ inviteUrl, embedKey: "pk_test" }));
     await answerProbe(origin, true);
 
     // jsdom fires no `load` of its own.
     flowFrame()?.dispatchEvent(new Event("load"));
-    await vi.advanceTimersByTimeAsync(REVEAL_GRACE_MS - 1);
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS - 1);
     expect(held()).toBe(true);
+    expect(continueButton()).toBeNull();
 
     await vi.advanceTimersByTimeAsync(1);
-    expect(held()).toBe(false);
-    expect(status()).toBe("");
+    expect(flowFrame()).toBeNull();
+    expect(continueButton()).not.toBeNull();
+    expect(status()).toBe("Continue in a new window to finish connecting.");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("runs the flow in the window it offered instead", async () => {
+    const popup = fakeWindow();
+    const opened = vi.spyOn(window, "open").mockReturnValue(popup);
+    const onOpen = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onOpen }));
+    await answerProbe(origin, true);
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS);
+
+    continueButton()?.click();
+    sendEvent(origin, popup, "open");
+
+    expect(String(opened.mock.calls[0]?.[0])).toContain("embed=popup");
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops listening to the frame it gave up on", async () => {
+    // Read before the frame goes: a removed frame has no window to ask for.
+    const onOpen = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onOpen }));
+    await answerProbe(origin, true);
+    const abandoned = flowFrame()?.contentWindow;
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS);
+
+    sendEvent(origin, abandoned, "open");
+
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(continueButton()).not.toBeNull();
+  });
+
+  it("frames the next launch again rather than remembering the fallback", async () => {
+    // Silence is all this has to go on, and a slow page is silent too. One
+    // bad moment should not cost every later launch on the page its frame.
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS);
+    handles.pop()?.destroy();
+
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(resolvedVerdict(origin, "pk_test")).toBe("supported");
+    expect(flowFrame()).not.toBeNull();
   });
 
   it("waits for nothing but the frame's load to start that fallback", async () => {
@@ -358,19 +412,59 @@ describe("launching on a supported verdict", () => {
     handles.push(open({ inviteUrl, embedKey: "pk_test" }));
     await answerProbe(origin, true);
 
-    await vi.advanceTimersByTimeAsync(REVEAL_GRACE_MS * 10);
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS * 10);
 
     expect(held()).toBe(true);
+    expect(continueButton()).toBeNull();
   });
 
-  it("shows the frame when the flow ends before it said it was ready", async () => {
+  it("keeps the frame when the open arrives inside the grace period", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS - 1);
+
+    sendEvent(origin, flowFrame()?.contentWindow, "open");
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS * 10);
+
+    expect(flowFrame()).not.toBeNull();
+    expect(held()).toBe(false);
+    expect(continueButton()).toBeNull();
+  });
+
+  it("never falls back once the flow said it was ready, whatever loads after", async () => {
+    // The flow can post `open` before its frame's `load`, and a frame that
+    // navigates itself loads again. Neither may take away a flow the user is
+    // already in.
     const { origin, inviteUrl } = nextInvite();
     handles.push(open({ inviteUrl, embedKey: "pk_test" }));
     await answerProbe(origin, true);
 
+    sendEvent(origin, flowFrame()?.contentWindow, "open");
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS * 10);
+    flowFrame()?.dispatchEvent(new Event("load"));
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS * 10);
+
+    expect(flowFrame()).not.toBeNull();
+    expect(continueButton()).toBeNull();
+  });
+
+  it("shows the frame when the flow ends before it said it was ready", async () => {
+    // The flow got far enough to report an ending, so the page in the frame
+    // is the flow's own and worth showing. There is nothing left to retry.
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+    flowFrame()?.dispatchEvent(new Event("load"));
+
     sendEvent(origin, flowFrame()?.contentWindow, "exit");
+    await vi.advanceTimersByTimeAsync(OPEN_GRACE_MS * 10);
 
     expect(held()).toBe(false);
+    expect(flowFrame()).not.toBeNull();
+    expect(continueButton()).toBeNull();
   });
 
   it("leaves no fallback running once torn down", async () => {
