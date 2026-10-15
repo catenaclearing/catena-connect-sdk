@@ -385,7 +385,10 @@ export function createSurface(
     // that this page cannot hear.
     root.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
+      // Stopped here so a modal of the host page's own, open behind the
+      // overlay, does not close on the same key.
       event.preventDefault();
+      event.stopPropagation();
       onDismiss();
     });
   }

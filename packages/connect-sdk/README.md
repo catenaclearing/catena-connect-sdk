@@ -441,9 +441,10 @@ The overlay has a close button in its top-right corner, and Escape does the
 same while focus is on the overlay's own controls. Escape pressed inside the
 flow goes to the flow's page, which this package cannot hear. Either one ends
 the launch and calls `onClose`, with no `onSuccess` or `onExit` before it
-unless the flow had already sent one. The overlay still stays up until you
-call `destroy()`, so an `onClose` handler that does nothing leaves the user
-looking at it.
+unless the flow had already sent one, and none after it. The flow comes off
+the overlay at once, but the overlay itself stays up until you call
+`destroy()`, so an `onClose` handler that does nothing leaves the user
+looking at an empty overlay.
 
 The close button cannot be turned off. The overlay sits above everything on
 your page and takes the rest of it out of the tab order, so a control of your

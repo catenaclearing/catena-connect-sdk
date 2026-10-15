@@ -858,6 +858,55 @@ describe("a launch the user closed before the probe answered", () => {
   });
 });
 
+describe("a launch the user closed from the overlay", () => {
+  // The dismissal reveals a held frame, and the caller's `onClose` may leave
+  // the teardown for later, with the flow still running.
+
+  function closeButton(): HTMLButtonElement | null {
+    return surfaceHost()?.shadowRoot?.querySelector("button.close") ?? null;
+  }
+
+  it("takes the frame down rather than revealing it", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+    expect(held()).toBe(true);
+
+    closeButton()?.click();
+
+    expect(flowFrame()).toBeNull();
+    expect(held()).toBe(false);
+  });
+
+  it("hears no outcome from that frame afterwards", async () => {
+    const onSuccess = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onSuccess }));
+    await answerProbe(origin, true);
+    const frameWindow = flowFrame()?.contentWindow;
+
+    closeButton()?.click();
+    sendEvent(origin, frameWindow, "success");
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("hears no outcome from a window it opened, either", async () => {
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const onSuccess = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onSuccess }));
+    await answerProbe(origin, false);
+    continueButton()?.click();
+
+    closeButton()?.click();
+    sendEvent(origin, popup, "success");
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+});
+
 describe("launching on an unsupported verdict", () => {
   it("offers the user a way to continue instead of a frame", async () => {
     const { origin, inviteUrl } = nextInvite();

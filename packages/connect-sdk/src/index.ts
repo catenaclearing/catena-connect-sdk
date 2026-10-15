@@ -165,9 +165,17 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // The overlay's close button and Escape key end the launch through the same
   // dismissal the popup watchdog uses, so the caller hears an ordinary
   // `onClose` and stays the one who takes the surface down.
-  const surface = createSurface(options.container, () =>
-    launch.listener.dismiss()
-  );
+  //
+  // The flow comes off the surface first. The dismissal reveals a frame still
+  // held behind the loading state, which would put the flow back in front of
+  // someone who just closed it. And nothing the flow sends afterwards counts:
+  // a frame or window left running until the caller's teardown could still
+  // finish, and deliver an outcome after the close.
+  const surface = createSurface(options.container, () => {
+    launch.surface.clear();
+    launch.source = none;
+    launch.listener.dismiss();
+  });
 
   // Frame mode needs no user gesture, which is what lets the surface go up
   // first and the mode be decided behind it.

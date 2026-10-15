@@ -456,6 +456,26 @@ describe("the overlay's way out", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("keeps the Escape it acted on from reaching the host page", () => {
+    createSurface(undefined, () => {});
+    const heard = vi.fn();
+    document.addEventListener("keydown", heard);
+
+    // Composed, as a real keypress is, or it would stop at the shadow root
+    // whatever the overlay did with it.
+    rootIn(document.body)?.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      })
+    );
+    document.removeEventListener("keydown", heard);
+
+    expect(heard).not.toHaveBeenCalled();
+  });
+
   it("hears Escape from a control inside the overlay", () => {
     const onDismiss = vi.fn();
     const surface = createSurface(undefined, onDismiss);
