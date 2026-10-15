@@ -234,7 +234,7 @@ function enter(launch: Launch, verdict: ProbeVerdict, launchUrl: string): void {
         drop();
         // Before the window exists, so the guard stops trusting the frame
         // now rather than when the user activates the affordance.
-        launch.source = null;
+        launch.source = none;
         offer(launch, launchUrl);
       }, OPEN_GRACE_MS);
     };
