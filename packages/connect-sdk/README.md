@@ -561,6 +561,8 @@ off the user's click.
 It cannot break your page. An invite URL the package cannot derive an origin
 from is ignored here. The same URL throws from `open()`, where a launch is at
 stake.
+Outside a browser, as in a server render, `preload()` does nothing, so it is
+safe to call from code that also runs on the server.
 
 The result is held for the life of the page and never persisted. Browser
 settings change between visits, and a remembered "supported" would strand

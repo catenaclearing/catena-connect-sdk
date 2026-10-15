@@ -440,9 +440,16 @@ export function resume(options: ResumeOptions): void {
  * **Calling this can never break the page.** A URL with no origin to derive
  * throws from `open()`, where a launch is at stake. Here there is nothing to
  * get wrong, and callers run this on mount — often with an invitation their
- * data layer has not delivered yet.
+ * data layer has not delivered yet. Outside a browser, during a server render,
+ * it does nothing: there is no document to probe from.
  */
 export function preload(options: PreloadOptions): void {
+  // A server render reaches this from module scope or a component body. The
+  // probe needs a document, and the verdict is per browser anyway.
+  if (typeof document === "undefined") {
+    return;
+  }
+
   let origin: string;
   try {
     origin = connectOrigin(options.inviteUrl);
