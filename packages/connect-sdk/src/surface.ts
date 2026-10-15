@@ -188,11 +188,16 @@ const STYLES = `
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.92);
     color: #1a1a1a;
-    font-family: inherit;
-    font-size: 22px;
-    line-height: 1;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Drawn rather than typed: a glyph sits wherever its font's metrics put
+     it, which is off center by a different amount in every font. */
+  .close svg {
+    display: block;
+    width: 14px;
+    height: 14px;
   }
 
   .close:focus-visible {
@@ -365,7 +370,7 @@ export function createSurface(
     close.type = "button";
     close.className = "close";
     close.setAttribute("aria-label", CLOSE_LABEL);
-    close.textContent = "\u00d7";
+    close.append(crossIcon(doc));
     close.addEventListener("click", () => {
       onDismiss();
     });
@@ -570,6 +575,24 @@ export function createSurface(
     },
   };
 }
+
+/** Two strokes corner to corner, centered in their box by construction. */
+function crossIcon(doc: Document): SVGSVGElement {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = doc.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", "M3 3L13 13M13 3L3 13");
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("stroke-linecap", "round");
+  svg.append(path);
+  return svg;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 /**
  * What actually has focus, rather than what the document admits to.

@@ -204,8 +204,12 @@ outside a browser.
 ### `container`
 
 Pass an element to mount the flow inline. Omit it and the package renders its
-own overlay. Behavior is otherwise identical, including on the fallback modes.
-The package only removes what it created, so your container is left as it was
+own overlay. Behavior is otherwise identical, including on the fallback modes,
+with one difference: the overlay has a close button and Escape handling, and a
+container has neither, so the way out of it is yours to provide
+([The package never dismisses your surface](#the-package-never-dismisses-your-surface)).
+This is also the way to use your own close control or modal chrome. The
+package only removes what it created, so your container is left as it was
 found.
 
 The container can live in a different document from the one the package runs
@@ -441,8 +445,12 @@ unless the flow had already sent one. The overlay still stays up until you
 call `destroy()`, so an `onClose` handler that does nothing leaves the user
 looking at it.
 
-A `container` gets no close button. It sits in your page, so offering a way
-out of it is up to you: call `destroy()` from your own control.
+The close button cannot be turned off. The overlay sits above everything on
+your page and takes the rest of it out of the tab order, so a control of your
+own could not be reached while it is up. If you want your own close control,
+or any other chrome around the flow, pass a `container` and build the modal
+yourself. A `container` gets no close button and no Escape handling: call
+`destroy()` from your own control.
 
 ## The three modes
 
