@@ -12,10 +12,18 @@ import { expect, type Page, test } from "@playwright/test";
  * refused.
  */
 
+/** What every warning the package logs starts with. */
+const PACKAGE = "@catenaclearing/connect-sdk";
+
 async function launchWindow(page: Page, coop: string): Promise<string[]> {
   const warnings: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "warning") warnings.push(message.text());
+    // Ours only: Firefox warns about the stand-in pages themselves, such
+    // as a frame with no declared charset.
+    const text = message.text();
+    if (message.type() === "warning" && text.includes(PACKAGE)) {
+      warnings.push(text);
+    }
   });
   await page.goto(`/?coop=${coop}`);
   await page.waitForFunction(() => (window as { ready?: boolean }).ready);
