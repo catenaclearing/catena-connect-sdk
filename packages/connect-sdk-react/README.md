@@ -367,8 +367,9 @@ its own.
 
 What the promise covers here: the three exports, `useCatenaConnect`,
 `CatenaConnect` and `useCatenaConnectResume`; their options and props; the
-exported types, `CatenaConnectProps`, `UseCatenaConnectOptions`,
-`UseCatenaConnectResult`, `UseCatenaConnectResumeOptions`, and the core types
+exported types, `CatenaConnectProps`, `UseCatenaConnectOpenOptions`,
+`UseCatenaConnectOptions`, `UseCatenaConnectResult`,
+`UseCatenaConnectResumeOptions`, and the core types
 it re-exports; and the behavior this README documents and you can observe:
 teardown on unmount, handlers following the render, options fixed per launch,
 delivery once on the return page.

@@ -62,8 +62,18 @@ export interface UseCatenaConnectOptions
  * the latest render for this one launch. Handlers are not among them: the
  * handler that runs is always the one from the latest render.
  */
-export type UseCatenaConnectOpenOptions = Partial<
-  Omit<UseCatenaConnectOptions, keyof ConnectCallbacks | "preload">
+export type UseCatenaConnectOpenOptions = {
+  [K in keyof LaunchOptions]?: LaunchOptions[K] | undefined;
+};
+
+/**
+ * The hook's options that describe a launch. `undefined` is spelled out on
+ * every key of the type above because passing it replaces the rendered value,
+ * and `exactOptionalPropertyTypes` would otherwise reject it.
+ */
+type LaunchOptions = Omit<
+  UseCatenaConnectOptions,
+  keyof ConnectCallbacks | "preload"
 >;
 
 /** What `useCatenaConnect()` returns. Every function is stable across renders. */
