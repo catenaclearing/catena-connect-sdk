@@ -243,9 +243,9 @@ const STYLES = `
      behind the button: the dimmed page on a wide screen, the white panel on
      a narrow one. */
   .close:focus-visible {
-    outline: 2px solid #1a1a1a;
+    outline: 2px solid var(--text);
     outline-offset: 0;
-    box-shadow: 0 0 0 4px #ffffff;
+    box-shadow: 0 0 0 4px var(--surface);
   }
 
   /* Present from the start so it can announce, taking no space until it has
@@ -355,7 +355,8 @@ export interface SurfaceOptions {
   /**
    * The launch's `theme`, so what we draw before and around the flow matches
    * it. Anything but `"light"` or `"dark"` leaves the choice to the user's
-   * device, as the flow itself does.
+   * device. The flow may resolve differently without one: it consults a
+   * preference the user stored with it first, which this page cannot read.
    */
   theme?: string;
 }

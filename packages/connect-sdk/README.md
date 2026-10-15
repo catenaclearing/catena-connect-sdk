@@ -294,9 +294,12 @@ There is no `"auto"`. The iframe is a separate document and cannot see your
 page's theme. If you want the flow to match your surface, say which one you
 are in. If you want it to follow the user's device, pass nothing.
 
-The package's own surface follows the same setting: the loading state, the
-Continue button and the overlay's close button are dark under `"dark"`, light
-under `"light"`, and follow the device when you pass nothing.
+The package's own surface, meaning the loading state, the Continue button
+and the overlay's close button, is dark under `"dark"` and light under
+`"light"`. When you pass nothing it follows the device's preference only. It
+cannot see a preference the user stored in the flow, so a user whose stored
+choice differs from their device sees the surface in one scheme and the flow
+in the other. Pass a theme if they must match.
 
 #### `brandColor`
 
