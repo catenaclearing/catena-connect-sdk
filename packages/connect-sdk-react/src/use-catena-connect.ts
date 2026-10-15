@@ -63,13 +63,16 @@ export interface UseCatenaConnectOptions
  * handler that runs is always the one from the latest render.
  */
 export type UseCatenaConnectOpenOptions = {
-  [K in keyof LaunchOptions]?: LaunchOptions[K] | undefined;
+  [K in keyof LaunchOptions]?: {} extends Pick<LaunchOptions, K>
+    ? LaunchOptions[K] | undefined
+    : LaunchOptions[K];
 };
 
 /**
- * The hook's options that describe a launch. `undefined` is spelled out on
- * every key of the type above because passing it replaces the rendered value,
- * and `exactOptionalPropertyTypes` would otherwise reject it.
+ * The hook's options that describe a launch. In the type above, a key that is
+ * optional here also takes an explicit `undefined`, which clears the rendered
+ * value even under `exactOptionalPropertyTypes`. A required key does not: an
+ * `embedKey` of `undefined` would launch with no key at all.
  */
 type LaunchOptions = Omit<
   UseCatenaConnectOptions,
@@ -90,8 +93,9 @@ export interface UseCatenaConnectResult {
   open(): void;
   /**
    * `open()`, with the given options in place of the latest render's for this
-   * launch. Any option passed, `undefined` included, replaces the rendered
-   * one; options left out keep their rendered value.
+   * launch. An option passed replaces the rendered one, and passing
+   * `undefined` for an optional one clears it; options left out keep their
+   * rendered value.
    */
   openWith(options: UseCatenaConnectOpenOptions): void;
   /**

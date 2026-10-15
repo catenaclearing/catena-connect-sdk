@@ -198,8 +198,9 @@ throws if there was none. Pass the new value to `openWith()` instead.
 **`openWith(options)`** is `open()` with some options supplied for this launch
 in place of the rendered ones. It takes `inviteUrl`, `embedKey`, `container`
 and the presentation options; handlers always come from the latest render.
-An option you pass replaces the rendered value even when it is `undefined`,
-and an option you leave out keeps it.
+An option you pass replaces the rendered value, and an option you leave out
+keeps it. Passing `undefined` clears an optional one, such as `theme`; for
+`inviteUrl` it makes `openWith()` throw, as `open()` does.
 
 ```tsx
 const { openWith } = useCatenaConnect({ inviteUrl: null, embedKey });
