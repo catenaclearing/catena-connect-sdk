@@ -35,6 +35,45 @@ const STYLES = `
     height: 100% !important;
   }
 
+  /* The surface's own colors, light unless the launch forces dark or leaves
+     the choice to the user's device and the device prefers dark. They cover
+     only what we draw: the loading state, the affordance and the close
+     button. The flow draws itself. */
+  .root {
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --muted: #555555;
+    --track: #e0e0e0;
+    --action: #1a1a1a;
+    --on-action: #ffffff;
+    --close: rgba(255, 255, 255, 0.92);
+    color-scheme: light;
+  }
+
+  .root[data-theme="dark"] {
+    --surface: #121212;
+    --text: #f2f2f2;
+    --muted: #a8a8a8;
+    --track: #3a3a3a;
+    --action: #f2f2f2;
+    --on-action: #121212;
+    --close: rgba(40, 40, 40, 0.92);
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .root:not([data-theme]) {
+      --surface: #121212;
+      --text: #f2f2f2;
+      --muted: #a8a8a8;
+      --track: #3a3a3a;
+      --action: #f2f2f2;
+      --on-action: #121212;
+      --close: rgba(40, 40, 40, 0.92);
+      color-scheme: dark;
+    }
+  }
+
   .root {
     position: relative;
     display: flex;
@@ -45,8 +84,8 @@ const STYLES = `
     min-height: 480px;
     box-sizing: border-box;
     font-family: system-ui, sans-serif;
-    color: #1a1a1a;
-    background: #ffffff;
+    color: var(--text);
+    background: var(--surface);
   }
 
   .root.overlay {
@@ -68,7 +107,7 @@ const STYLES = `
        100%, and the panel outgrows the surface by twice that padding. */
     box-sizing: border-box;
     overflow: hidden;
-    background: #ffffff;
+    background: var(--surface);
   }
 
   .root.overlay .panel {
@@ -81,7 +120,7 @@ const STYLES = `
   .status {
     font-size: 14px;
     line-height: 1.4;
-    color: #555555;
+    color: var(--muted);
   }
 
   /* The loading state stacks a spinner above its sentence. The sentence stays
@@ -99,8 +138,8 @@ const STYLES = `
     width: 24px;
     height: 24px;
     box-sizing: border-box;
-    border: 2px solid #e0e0e0;
-    border-top-color: #555555;
+    border: 2px solid var(--track);
+    border-top-color: var(--muted);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -147,7 +186,7 @@ const STYLES = `
   .panel.offered .status {
     max-width: 34ch;
     font-size: 15px;
-    color: #1a1a1a;
+    color: var(--text);
   }
 
   /* Styled from nothing on purpose: the shadow boundary keeps the host page's
@@ -159,13 +198,13 @@ const STYLES = `
     padding: 12px 24px;
     border: 0;
     border-radius: 8px;
-    background: #1a1a1a;
-    color: #ffffff;
+    background: var(--action);
+    color: var(--on-action);
     cursor: pointer;
   }
 
   .continue:focus-visible {
-    outline: 2px solid #1a1a1a;
+    outline: 2px solid var(--action);
     outline-offset: 2px;
   }
 
@@ -186,8 +225,8 @@ const STYLES = `
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
-    color: #1a1a1a;
+    background: var(--close);
+    color: var(--text);
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
@@ -204,9 +243,9 @@ const STYLES = `
      behind the button: the dimmed page on a wide screen, the white panel on
      a narrow one. */
   .close:focus-visible {
-    outline: 2px solid #1a1a1a;
+    outline: 2px solid var(--text);
     outline-offset: 0;
-    box-shadow: 0 0 0 4px #ffffff;
+    box-shadow: 0 0 0 4px var(--surface);
   }
 
   /* Present from the start so it can announce, taking no space until it has
@@ -303,20 +342,33 @@ export interface Surface {
   destroy(): void;
 }
 
+/** How the surface is set up, beyond where it goes. */
+export interface SurfaceOptions {
+  /**
+   * What the overlay's close button and Escape key ask for. Only the overlay
+   * has them: it covers the page and takes it out of the tab order, so
+   * without a way out of its own a flow that never says it is done leaves the
+   * user nowhere to go but a reload. A caller's container sits in a page they
+   * still control, and dismissing it is theirs to offer.
+   */
+  onDismiss?: () => void;
+  /**
+   * The launch's `theme`, so what we draw before and around the flow matches
+   * it. Anything but `"light"` or `"dark"` leaves the choice to the user's
+   * device. The flow may resolve differently without one: it consults a
+   * preference the user stored with it first, which this page cannot read.
+   */
+  theme?: string;
+}
+
 /**
  * Create the surface. With a container we render inline inside it, without one
  * we render our own overlay on the document. Behavior is identical either way,
  * which keeps an inline mount from being a special case anywhere else.
- *
- * `onDismiss` is what the overlay's close button and Escape key ask for. Only
- * the overlay has them: it covers the page and takes it out of the tab order,
- * so without a way out of its own a flow that never says it is done leaves the
- * user nowhere to go but a reload. A caller's container sits in a page they
- * still control, and dismissing it is theirs to offer.
  */
 export function createSurface(
   container?: HTMLElement,
-  onDismiss?: () => void
+  { onDismiss, theme }: SurfaceOptions = {}
 ): Surface {
   // The container's own document, which is not always the one this package
   // was loaded in: a page can call us from its top window and hand over an
@@ -337,6 +389,9 @@ export function createSurface(
   const root = doc.createElement("div");
   root.className = overlay ? "root overlay" : "root";
   root.tabIndex = -1;
+  if (theme === "light" || theme === "dark") {
+    root.dataset.theme = theme;
+  }
 
   if (overlay) {
     // Only our own overlay claims to be a modal. A caller's container sits

@@ -171,10 +171,13 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // someone who just closed it. And nothing the flow sends afterwards counts:
   // a frame or window left running until the caller's teardown could still
   // finish, and deliver an outcome after the close.
-  const surface = createSurface(options.container, () => {
-    launch.surface.clear();
-    launch.source = none;
-    launch.listener.dismiss();
+  const surface = createSurface(options.container, {
+    onDismiss: () => {
+      launch.surface.clear();
+      launch.source = none;
+      launch.listener.dismiss();
+    },
+    theme: options.theme,
   });
 
   // Frame mode needs no user gesture, which is what lets the surface go up
