@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createSurface } from "./surface";
 
@@ -400,6 +400,120 @@ describe("the overlay as a modal", () => {
       hostIn(container)?.shadowRoot?.querySelector("[role='dialog']")
     ).toBeNull();
     expect(document.activeElement).toBe(trigger);
+  });
+});
+
+describe("the overlay's way out", () => {
+  /** The close control, if the surface rendered one. */
+  function closeButton(parent: ParentNode): HTMLButtonElement | null {
+    return hostIn(parent)?.shadowRoot?.querySelector("button.close") ?? null;
+  }
+
+  /** The surface's root, which is where its key handling listens. */
+  function rootIn(parent: ParentNode): HTMLElement | null {
+    return hostIn(parent)?.shadowRoot?.querySelector(".root") ?? null;
+  }
+
+  function press(target: HTMLElement | null, key: string): KeyboardEvent {
+    const event = new KeyboardEvent("keydown", {
+      key,
+      bubbles: true,
+      cancelable: true,
+    });
+    target?.dispatchEvent(event);
+    return event;
+  }
+
+  it("gives the overlay a named close button after the flow's panel", () => {
+    createSurface(undefined, vi.fn());
+
+    const close = closeButton(document.body);
+    expect(close?.getAttribute("aria-label")).toBe("Close");
+    expect(close?.type).toBe("button");
+    // Last in the tab order: the flow is what the user came for.
+    expect(close?.previousElementSibling?.classList.contains("panel")).toBe(
+      true
+    );
+  });
+
+  it("asks for the dismissal on a click, and removes nothing itself", () => {
+    const onDismiss = vi.fn();
+    createSurface(undefined, onDismiss);
+
+    closeButton(document.body)?.click();
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(hostIn(document.body)).not.toBeNull();
+  });
+
+  it("asks for the dismissal on Escape", () => {
+    const onDismiss = vi.fn();
+    createSurface(undefined, onDismiss);
+
+    const event = press(rootIn(document.body), "Escape");
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("keeps the Escape it acted on from reaching the host page", () => {
+    createSurface(undefined, () => {});
+    const heard = vi.fn();
+    document.addEventListener("keydown", heard);
+
+    // Composed, as a real keypress is, or it would stop at the shadow root
+    // whatever the overlay did with it.
+    rootIn(document.body)?.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      })
+    );
+    document.removeEventListener("keydown", heard);
+
+    expect(heard).not.toHaveBeenCalled();
+  });
+
+  it("hears Escape from a control inside the overlay", () => {
+    const onDismiss = vi.fn();
+    const surface = createSurface(undefined, onDismiss);
+    surface.showContinue(() => {});
+
+    press(surface.mount.querySelector("button.continue"), "Escape");
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores every other key", () => {
+    const onDismiss = vi.fn();
+    createSurface(undefined, onDismiss);
+
+    press(rootIn(document.body), "Enter");
+    press(rootIn(document.body), "Esc");
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("offers none inside a caller's container", () => {
+    // Their container sits in a page they still control, and dismissing it
+    // is theirs to offer.
+    const container = document.createElement("div");
+    document.body.append(container);
+    const onDismiss = vi.fn();
+    createSurface(container, onDismiss);
+
+    press(rootIn(container), "Escape");
+
+    expect(closeButton(container)).toBeNull();
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("offers none when nothing was given to ask", () => {
+    createSurface();
+
+    expect(closeButton(document.body)).toBeNull();
   });
 });
 

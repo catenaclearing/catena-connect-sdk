@@ -60,7 +60,7 @@ function held(): boolean {
 
 /** The continue affordance, which lives inside the shadow root too. */
 function continueButton(): HTMLButtonElement | null {
-  return surfaceHost()?.shadowRoot?.querySelector("button") ?? null;
+  return surfaceHost()?.shadowRoot?.querySelector("button.continue") ?? null;
 }
 
 /**
@@ -825,6 +825,85 @@ describe("a frame whose window changes after it is mounted", () => {
 
     sendEvent(origin, after, "open");
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a launch the user closed before the probe answered", () => {
+  // The overlay's close button can end a launch while the verdict is still
+  // pending, and the caller's `onClose` may leave the teardown for later.
+
+  function closeButton(): HTMLButtonElement | null {
+    return surfaceHost()?.shadowRoot?.querySelector("button.close") ?? null;
+  }
+
+  it("mounts no frame when the verdict lands", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    closeButton()?.click();
+
+    await answerProbe(origin, true);
+
+    expect(flowFrame()).toBeNull();
+    expect(status()).toBe("");
+  });
+
+  it("offers no window when the verdict lands", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    closeButton()?.click();
+
+    await answerProbe(origin, false);
+
+    expect(continueButton()).toBeNull();
+  });
+});
+
+describe("a launch the user closed from the overlay", () => {
+  // The dismissal reveals a held frame, and the caller's `onClose` may leave
+  // the teardown for later, with the flow still running.
+
+  function closeButton(): HTMLButtonElement | null {
+    return surfaceHost()?.shadowRoot?.querySelector("button.close") ?? null;
+  }
+
+  it("takes the frame down rather than revealing it", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, true);
+    expect(held()).toBe(true);
+
+    closeButton()?.click();
+
+    expect(flowFrame()).toBeNull();
+    expect(held()).toBe(false);
+  });
+
+  it("hears no outcome from that frame afterwards", async () => {
+    const onSuccess = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onSuccess }));
+    await answerProbe(origin, true);
+    const frameWindow = flowFrame()?.contentWindow;
+
+    closeButton()?.click();
+    sendEvent(origin, frameWindow, "success");
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("hears no outcome from a window it opened, either", async () => {
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const onSuccess = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onSuccess }));
+    await answerProbe(origin, false);
+    continueButton()?.click();
+
+    closeButton()?.click();
+    sendEvent(origin, popup, "success");
+
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });
 

@@ -162,7 +162,20 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // the two, and a caller re-rendering in that window should not be able to
   // move the frame somewhere else.
   const launchUrl = buildLaunchUrl(options);
-  const surface = createSurface(options.container);
+  // The overlay's close button and Escape key end the launch through the same
+  // dismissal the popup watchdog uses, so the caller hears an ordinary
+  // `onClose` and stays the one who takes the surface down.
+  //
+  // The flow comes off the surface first. The dismissal reveals a frame still
+  // held behind the loading state, which would put the flow back in front of
+  // someone who just closed it. And nothing the flow sends afterwards counts:
+  // a frame or window left running until the caller's teardown could still
+  // finish, and deliver an outcome after the close.
+  const surface = createSurface(options.container, () => {
+    launch.surface.clear();
+    launch.source = none;
+    launch.listener.dismiss();
+  });
 
   // Frame mode needs no user gesture, which is what lets the surface go up
   // first and the mode be decided behind it.
@@ -216,6 +229,15 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     // The caller may have torn the launch down while the probe ran — a
     // component unmounting behind a modal is the ordinary way that happens.
     if (launch.destroyed) return;
+    // Or the user dismissed it from the overlay, and the caller has not torn
+    // it down yet: their `onClose` may leave that for later. Mounting the
+    // flow now would put it back in front of someone who just closed it, so
+    // the surface is emptied of its loading state instead, since nothing is
+    // coming to replace it.
+    if (launch.finished) {
+      launch.surface.clear();
+      return;
+    }
     enter(launch, verdict, launchUrl);
   });
 

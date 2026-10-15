@@ -40,7 +40,7 @@ function surfaceHost(): Element | null {
 }
 
 function continueButton(): HTMLButtonElement | null {
-  return surfaceHost()?.shadowRoot?.querySelector("button") ?? null;
+  return surfaceHost()?.shadowRoot?.querySelector("button.continue") ?? null;
 }
 
 function probeFrame(): HTMLIFrameElement | null {
