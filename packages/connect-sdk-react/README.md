@@ -143,8 +143,8 @@ checklist applies unchanged.
 
 ## `useCatenaConnect(options)`
 
-Returns `{ open, destroy }`. Both functions are stable across renders, so they
-can go straight into an `onClick` or a dependency list.
+Returns `{ open, openWith, destroy }`. All three are stable across renders, so
+they can go straight into an `onClick` or a dependency list.
 
 | Option | Type | Required |
 | --- | --- | --- |
@@ -188,6 +188,35 @@ Once a launch has ended and you have not called `destroy()`, `open()`
 replaces it with a new one, as the core's
 [One flow at a time](https://github.com/catenaclearing/catena-connect-sdk/blob/main/packages/connect-sdk/README.md#one-flow-at-a-time)
 section describes.
+
+"Latest render" is meant literally. A value you set in the same event handler
+has not rendered yet, so `open()` cannot see it. If you fetch the invitation
+when the button is pressed, `setInviteUrl(url); open();` launches whatever
+`inviteUrl` was before, which is the previous invitation if there was one, and
+throws if there was none. Pass the new value to `openWith()` instead.
+
+**`openWith(options)`** is `open()` with some options supplied for this launch
+in place of the rendered ones. It takes `inviteUrl`, `embedKey`, `container`
+and the presentation options; handlers always come from the latest render.
+An option you pass replaces the rendered value even when it is `undefined`,
+and an option you leave out keeps it.
+
+```tsx
+const { openWith } = useCatenaConnect({ inviteUrl: null, embedKey });
+
+async function connect() {
+  const inviteUrl = await fetchInviteUrl();
+  openWith({ inviteUrl });
+}
+
+return <button onClick={connect}>Connect your fleet</button>;
+```
+
+`open()` takes no argument so that `onClick={open}` keeps working; React
+passes the click event to whatever is in `onClick`, which is why `openWith()`
+is a separate function. Fetching the invitation before the button is shown is
+still the simpler page when you can do it: the button can be disabled until it
+arrives, and `preload` gets to warm the launch.
 
 **`destroy()`** tears the current launch down: its surface, the frame or
 window it opened, and its listeners. It is safe to call at any point,
@@ -318,7 +347,13 @@ that called `open()`, or call its `destroy()`.
 
 **`open()` throws mentioning `inviteUrl`.** The hook was asked to launch
 before the invitation URL arrived. Disable the button, or do not call
-`open()`, until `inviteUrl` is a string. Every other throw is the core's,
+`open()`, until `inviteUrl` is a string. If you set the URL in the same
+handler that calls `open()`, it has not rendered yet; use `openWith()`
+([`useCatenaConnect(options)`](#usecatenaconnectoptions)).
+
+**The flow opens an earlier invitation.** The same cause: `open()` ran in the
+handler that set a new `inviteUrl`, so it launched the one from the latest
+render. Pass the new URL to `openWith()`. Every other throw is the core's,
 usually an invitation URL that is not `https`.
 
 ## Versioning and support

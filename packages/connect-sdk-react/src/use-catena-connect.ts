@@ -57,14 +57,33 @@ export interface UseCatenaConnectOptions
   preload?: boolean;
 }
 
-/** What `useCatenaConnect()` returns. Both functions are stable across renders. */
+/**
+ * Launch options for `openWith()`, each taking the place of the value from
+ * the latest render for this one launch. Handlers are not among them: the
+ * handler that runs is always the one from the latest render.
+ */
+export type UseCatenaConnectOpenOptions = Partial<
+  Omit<UseCatenaConnectOptions, keyof ConnectCallbacks | "preload">
+>;
+
+/** What `useCatenaConnect()` returns. Every function is stable across renders. */
 export interface UseCatenaConnectResult {
   /**
    * Launch the flow with the options as of the latest render, or bring the
    * live surface back if a launch is already up. Throws when `inviteUrl` is
    * absent, and whatever the core's `open()` throws on an invalid URL.
+   *
+   * A value set in the same event handler has not rendered yet, so `open()`
+   * cannot see it. To launch with a value you have only just obtained, such
+   * as an invitation fetched on click, pass it to `openWith()`.
    */
   open(): void;
+  /**
+   * `open()`, with the given options in place of the latest render's for this
+   * launch. Any option passed, `undefined` included, replaces the rendered
+   * one; options left out keep their rendered value.
+   */
+  openWith(options: UseCatenaConnectOpenOptions): void;
   /**
    * Tear the current launch down: its surface, the frame or window it opened,
    * and its listeners. Safe to call at any point, including with nothing
@@ -109,51 +128,56 @@ export function useCatenaConnect(
   // one, and the handler may unmount this component.
   const unmounted = useRef(false);
 
-  const open = useCallback((): void => {
-    const {
-      inviteUrl,
-      container,
-      preload: _,
-      ...launchOptions
-    } = latest.current;
+  const openWith = useCallback(
+    (overrides: UseCatenaConnectOpenOptions): void => {
+      const {
+        inviteUrl,
+        container,
+        preload: _,
+        ...launchOptions
+      } = { ...latest.current, ...overrides };
 
-    // A programming error, not a state to wait out: swallowing it would hide
-    // a button wired up before the invitation arrived.
-    if (inviteUrl === null || inviteUrl === undefined) {
-      throw new Error(
-        "useCatenaConnect: inviteUrl is required to open the flow"
-      );
-    }
+      // A programming error, not a state to wait out: swallowing it would hide
+      // a button wired up before the invitation arrived.
+      if (inviteUrl === null || inviteUrl === undefined) {
+        throw new Error(
+          "useCatenaConnect: inviteUrl is required to open the flow"
+        );
+      }
 
-    // A component that has unmounted has nothing left to own a launch.
-    if (unmounted.current) return;
+      // A component that has unmounted has nothing left to own a launch.
+      if (unmounted.current) return;
 
-    const launched = openFlow({
-      ...launchOptions,
-      inviteUrl,
-      container: container?.current ?? undefined,
-      ...forwarders.current,
-    });
+      const launched = openFlow({
+        ...launchOptions,
+        inviteUrl,
+        container: container?.current ?? undefined,
+        ...forwarders.current,
+      });
 
-    // The unmount happened inside the call above, from a handler the core
-    // delivered on the way to this launch. Its cleanup ran before there was a
-    // handle to clean up, so the new launch would be stranded on the page
-    // with nothing to tear it down.
-    if (unmounted.current) {
-      // Only when this call created the launch. A focus of another
-      // component's live flow is not this component's to end.
-      if (!started.has(launched)) launched.destroy();
-      return;
-    }
+      // The unmount happened inside the call above, from a handler the core
+      // delivered on the way to this launch. Its cleanup ran before there was a
+      // handle to clean up, so the new launch would be stranded on the page
+      // with nothing to tear it down.
+      if (unmounted.current) {
+        // Only when this call created the launch. A focus of another
+        // component's live flow is not this component's to end.
+        if (!started.has(launched)) launched.destroy();
+        return;
+      }
 
-    // The core answered with a launch that already existed. Our own, on a
-    // double click, is already stored; another component's is theirs to keep
-    // and theirs to tear down.
-    if (started.has(launched)) return;
+      // The core answered with a launch that already existed. Our own, on a
+      // double click, is already stored; another component's is theirs to keep
+      // and theirs to tear down.
+      if (started.has(launched)) return;
 
-    started.add(launched);
-    handle.current = launched;
-  }, [latest]);
+      started.add(launched);
+      handle.current = launched;
+    },
+    [latest]
+  );
+
+  const open = useCallback((): void => openWith({}), [openWith]);
 
   const destroy = useCallback((): void => {
     handle.current?.destroy();
@@ -182,5 +206,5 @@ export function useCatenaConnect(
     preloadFlow({ inviteUrl, embedKey });
   }, [preload, inviteUrl, embedKey]);
 
-  return { open, destroy };
+  return { open, openWith, destroy };
 }
