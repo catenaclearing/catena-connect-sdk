@@ -58,11 +58,17 @@ interface Launch {
    */
   listener: Listener;
   /**
-   * The window or frame the live mode created, once it has one. Read through a
-   * thunk by the message guard, so the listener can be attached before the mode
-   * has anything to trust.
+   * Reads the window the live mode created, once it has one. Called by the
+   * message guard on every message, so the listener can be attached before the
+   * mode has anything to trust.
+   *
+   * A reader rather than the window, because a frame's window is not fixed: it
+   * has none until it is in the document, and moving it to another parent —
+   * a portal re-parenting the caller's container — gives it a new one. Taken
+   * once at mount, either case left every callback failing the source check
+   * while the flow itself ran on, revealed by the fallback, with nothing said.
    */
-  source: Window | null;
+  source: () => Window | null;
   /** Everything to undo, newest first. */
   cleanups: Array<() => void>;
   /**
@@ -158,7 +164,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
       origin,
       // Read at delivery rather than captured here: popup mode has no window
       // at all until the user activates the affordance.
-      source: () => launch.source,
+      source: () => launch.source(),
       // The flow is over. The listener stays attached, because the dismissal
       // may still follow and must still be delivered.
       onTerminal: () => {
@@ -180,7 +186,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     handle: { destroy: () => destroy(launch) },
     surface,
     listener,
-    source: null,
+    source: none,
     cleanups: [listener.stop],
     opened: false,
     finished: false,
@@ -206,7 +212,7 @@ function enter(launch: Launch, verdict: ProbeVerdict, launchUrl: string): void {
       launch.surface,
       withEmbedMode(launchUrl, EMBED_FRAME)
     );
-    launch.source = frame.contentWindow;
+    launch.source = () => frame.contentWindow;
 
     // The frame stays behind the loading state until the flow posts `open`.
     // If that never comes after the frame loads, the most likely page in it
@@ -282,7 +288,7 @@ function offer(launch: Launch, launchUrl: string): void {
     stopWatch?.();
     stopWatch = null;
     opened = null;
-    launch.source = null;
+    launch.source = none;
 
     const popup = openPopup(withEmbedMode(launchUrl, EMBED_POPUP));
 
@@ -297,7 +303,7 @@ function offer(launch: Launch, launchUrl: string): void {
     }
 
     opened = popup;
-    launch.source = popup;
+    launch.source = () => popup;
     stopWatch = watchClosed(popup, launch.listener.dismiss);
   });
 
@@ -319,6 +325,11 @@ function offer(launch: Launch, launchUrl: string): void {
     close(opened);
     opened = null;
   });
+}
+
+/** The source of a launch with no window to trust yet, or any more. */
+function none(): null {
+  return null;
 }
 
 /**
@@ -368,7 +379,7 @@ function destroy(launch: Launch): void {
     cleanup();
   }
   launch.cleanups.length = 0;
-  launch.source = null;
+  launch.source = none;
   launch.surface.destroy();
 
   // Only if this launch still holds the slot, so an older handle's teardown

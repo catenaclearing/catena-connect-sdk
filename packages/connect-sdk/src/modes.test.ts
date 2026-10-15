@@ -735,6 +735,65 @@ describe("relaunching out of a terminal callback", () => {
   });
 });
 
+describe("a frame whose window changes after it is mounted", () => {
+  // The frame's window is asked for on each message, not taken once at mount.
+  // A frame has no window outside the document and gets a new one when it is
+  // moved, so one taken at mount left every callback failing the source check
+  // while the flow ran on, shown by the reveal fallback.
+
+  /** The flow's frame inside a caller's container, wherever that now is. */
+  function frameIn(container: HTMLElement): HTMLIFrameElement | null {
+    return (
+      container.firstElementChild?.shadowRoot?.querySelector("iframe") ?? null
+    );
+  }
+
+  it("hears a frame whose container joined the document after the launch", async () => {
+    const container = document.createElement("div");
+    const { origin, inviteUrl } = nextInvite();
+    const onOpen = vi.fn();
+    const onSuccess = vi.fn();
+    handles.push(
+      open({ inviteUrl, embedKey: "pk_test", container, onOpen, onSuccess })
+    );
+    await answerProbe(origin, true);
+    expect(frameIn(container)?.contentWindow).toBeNull();
+
+    document.body.append(container);
+    const source = frameIn(container)?.contentWindow;
+    sendEvent(origin, source, "open");
+    sendEvent(origin, source, "success");
+
+    expect(source).toBeTruthy();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it("follows the frame to the window it gets when its container moves", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const { origin, inviteUrl } = nextInvite();
+    const onOpen = vi.fn();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", container, onOpen }));
+    await answerProbe(origin, true);
+    const before = frameIn(container)?.contentWindow;
+
+    // What a portal does when it re-parents the caller's modal.
+    const portal = document.createElement("section");
+    document.body.append(portal);
+    portal.append(container);
+    const after = frameIn(container)?.contentWindow;
+    expect(after).toBeTruthy();
+    expect(after).not.toBe(before);
+
+    sendEvent(origin, before, "open");
+    expect(onOpen).not.toHaveBeenCalled();
+
+    sendEvent(origin, after, "open");
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("launching on an unsupported verdict", () => {
   it("offers the user a way to continue instead of a frame", async () => {
     const { origin, inviteUrl } = nextInvite();
