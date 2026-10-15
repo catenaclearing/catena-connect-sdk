@@ -10,8 +10,8 @@ import { type Listener, listen } from "./messages";
 import {
   isClosed,
   mountFrame,
+  OPEN_GRACE_MS,
   openPopup,
-  REVEAL_GRACE_MS,
   redirect,
   watchClosed,
 } from "./modes";
@@ -65,6 +65,11 @@ interface Launch {
   source: Window | null;
   /** Everything to undo, newest first. */
   cleanups: Array<() => void>;
+  /**
+   * The flow has said it is on screen, so the frame it runs in is never
+   * given up on.
+   */
+  opened: boolean;
   /**
    * The flow reached a terminal event. The launch is no longer live, but its
    * surface stays until the caller tears it down.
@@ -163,6 +168,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
         launch.surface.reveal();
       },
       onOpen: () => {
+        launch.opened = true;
         launch.surface.reveal();
       },
       targets: messageTargets(options.container),
@@ -176,6 +182,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     listener,
     source: null,
     cleanups: [listener.stop],
+    opened: false,
     finished: false,
     destroyed: false,
   };
@@ -202,22 +209,32 @@ function enter(launch: Launch, verdict: ProbeVerdict, launchUrl: string): void {
     launch.source = frame.contentWindow;
 
     // The frame stays behind the loading state until the flow posts `open`.
-    // If that never comes — an error page in the frame, or an app that
-    // cannot reach this page to say so — the frame is shown anyway, a little
-    // after its document loaded, so a missing message can never leave the
-    // user on a spinner with nothing behind it.
+    // If that never comes after the frame loads, the most likely page in it
+    // is the browser's refusal, so the launch drops the frame and offers the
+    // window, which the same refusal does not apply to. A flow that ended
+    // without `open` is revealed by `onTerminal` instead, and one that said
+    // `open` keeps its frame whatever loads in it afterwards.
     let fallback: ReturnType<typeof setTimeout> | undefined;
-    const onLoad = (): void => {
-      clearTimeout(fallback);
-      fallback = setTimeout(() => launch.surface.reveal(), REVEAL_GRACE_MS);
-    };
-    frame.addEventListener("load", onLoad);
-
-    launch.cleanups.push(() => {
+    const drop = (): void => {
       clearTimeout(fallback);
       frame.removeEventListener("load", onLoad);
       frame.remove();
-    });
+    };
+    const onLoad = (): void => {
+      if (launch.opened || launch.finished) return;
+      clearTimeout(fallback);
+      fallback = setTimeout(() => {
+        if (launch.opened || launch.finished || launch.destroyed) return;
+        drop();
+        // Before the window exists, so the guard stops trusting the frame
+        // now rather than when the user activates the affordance.
+        launch.source = null;
+        offer(launch, launchUrl);
+      }, OPEN_GRACE_MS);
+    };
+    frame.addEventListener("load", onLoad);
+
+    launch.cleanups.push(drop);
     return;
   }
 

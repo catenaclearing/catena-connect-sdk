@@ -428,16 +428,18 @@ and `resume()` delivers only the outcome you declare, followed by `onClose`.
 package checks whether this browser will run the flow in an iframe. If it
 will, the iframe mounts in the surface behind that loading state, which
 stays up until the flow reports it is ready (the same message that becomes
-`onOpen`). If that report never comes, the iframe is shown three seconds
-after its page loads, so the user is not left on the loading state. No
+`onOpen`). If that report has not come eight seconds after the iframe's page
+loads, the package removes the iframe and falls back to the popup, because
+the usual cause is a browser refusing to render the flow in an iframe. No
 warm-up call, no popup, no user gesture needed. On a slow network the check
 can take a few seconds to arrive, and the loading state waits for it rather
 than falling back early.
 
 **Popup.** The flow needs a cookie in a cross-site context, and not every
-browser will send one. Where the iframe check fails, the surface shows a
-button instead, and clicking it opens the flow in a popup window. One
-extra click, on those browsers only.
+browser will send one. Where the iframe check fails, or the iframe never
+reports it is ready, the surface shows a button instead, and clicking it
+opens the flow in a popup window. One extra click, only where the iframe
+cannot carry the flow.
 
 **Redirect.** If the browser blocks the popup too, the flow navigates the
 browser tab your page is in to the connect origin and runs there,
@@ -880,6 +882,9 @@ confirm that this browser will run the flow in a frame. The causes:
   framed.
 - The probe frame never answered in time: a blocked request, a frame that
   never loaded, a slow network.
+- The check passed, but the flow's iframe loaded and never reported it was
+  ready, usually because the connect origin refused to be framed. The button
+  appears about eight seconds after that iframe loads.
 - This page already probed once with no answer. That verdict is kept until
   the page reloads.
 
