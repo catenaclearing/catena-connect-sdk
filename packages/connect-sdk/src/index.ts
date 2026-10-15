@@ -13,6 +13,8 @@ import {
   OPEN_GRACE_MS,
   openPopup,
   redirect,
+  SEVERED_MS,
+  warnSevered,
   watchClosed,
 } from "./modes";
 import { clearPending, takePending } from "./pending";
@@ -304,7 +306,16 @@ function offer(launch: Launch, launchUrl: string): void {
 
     opened = popup;
     launch.source = () => popup;
-    stopWatch = watchClosed(popup, launch.listener.dismiss);
+
+    // A window gone almost as soon as it opened was cut off, not closed: see
+    // `warnSevered`. It still ends the launch, because nothing more will
+    // arrive from it.
+    const openedAt = Date.now();
+    stopWatch = watchClosed(popup, () => {
+      const elapsed = Date.now() - openedAt;
+      if (elapsed < SEVERED_MS) warnSevered(elapsed);
+      launch.listener.dismiss();
+    });
   });
 
   launch.cleanups.push(() => {

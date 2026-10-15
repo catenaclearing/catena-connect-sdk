@@ -282,7 +282,13 @@ const partnerFrame = `<!doctype html>
 function partner(req, res) {
   const url = new URL(req.url, PARTNER);
   if (url.pathname === "/") {
-    res.writeHead(200, { "content-type": "text/html" });
+    // `?coop=same-origin` serves the page under that opener policy, the way
+    // a site hardening its own page would.
+    const coop = url.searchParams.get("coop");
+    res.writeHead(200, {
+      "content-type": "text/html",
+      ...(coop ? { "cross-origin-opener-policy": coop } : {}),
+    });
     res.end(partnerPage);
     return;
   }

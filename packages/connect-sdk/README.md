@@ -35,6 +35,13 @@ flow runs but its messages never reach your page. Registered origins must
 be `https`, or `http` on `localhost`, and the scheme, host and port must
 match exactly: `www` and the apex are different origins.
 
+**A launching page that keeps its popups.** If the page that calls `open()`
+sends a `Cross-Origin-Opener-Policy` header, it must be
+`same-origin-allow-popups` or `unsafe-none`. With `same-origin`, the browser
+cuts your page off from the popup the moment it loads the flow, so the popup
+mode cannot report anything back
+([When you receive nothing](#when-you-receive-nothing)).
+
 You create invitations yourself, in the Catena dashboard or through the
 Catena API. Catena issues the embed key and registers the origins you provide.
 
@@ -597,6 +604,15 @@ the channel the completion travels on. The user still finishes. The package
 never opens with `noopener`; this applies only to a window or link you open
 yourself.
 
+**`Cross-Origin-Opener-Policy: same-origin` on the launching page.** In the
+popup mode, the browser cuts your page off from the window as soon as it loads
+the flow. From your page the window looks closed, so you get `onClose` with
+no outcome within a second of the click, while the user carries on in a
+window your page cannot hear or close. The flow then finishes by sending
+that window to your redirect URL. The package logs a console warning when a
+window closes this fast. Serve the page with `same-origin-allow-popups`
+instead, which keeps the popup connected and changes nothing else.
+
 **Redirect mode with no `resume()` call.** The flow completed in your tab
 and nothing was listening when it came back.
 
@@ -930,6 +946,12 @@ key not sent at all. The other causes: a window or link you opened yourself
 with `noopener`, the flow ran in the tab and no page called `resume()`, the
 destination page is on another origin, or the user left. Your webhooks are
 the record in every case
+([When you receive nothing](#when-you-receive-nothing)).
+
+**`onClose` arrives the moment the popup opens.** The launching page sends
+`Cross-Origin-Opener-Policy: same-origin`, which disconnects it from the
+popup. The console shows a warning from the package naming the header.
+Change it to `same-origin-allow-popups`
 ([When you receive nothing](#when-you-receive-nothing)).
 
 **`open()` throws.** The invitation URL does not parse, is not http or https,
