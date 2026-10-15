@@ -828,6 +828,36 @@ describe("a frame whose window changes after it is mounted", () => {
   });
 });
 
+describe("a launch the user closed before the probe answered", () => {
+  // The overlay's close button can end a launch while the verdict is still
+  // pending, and the caller's `onClose` may leave the teardown for later.
+
+  function closeButton(): HTMLButtonElement | null {
+    return surfaceHost()?.shadowRoot?.querySelector("button.close") ?? null;
+  }
+
+  it("mounts no frame when the verdict lands", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    closeButton()?.click();
+
+    await answerProbe(origin, true);
+
+    expect(flowFrame()).toBeNull();
+    expect(status()).toBe("");
+  });
+
+  it("offers no window when the verdict lands", async () => {
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    closeButton()?.click();
+
+    await answerProbe(origin, false);
+
+    expect(continueButton()).toBeNull();
+  });
+});
+
 describe("launching on an unsupported verdict", () => {
   it("offers the user a way to continue instead of a frame", async () => {
     const { origin, inviteUrl } = nextInvite();

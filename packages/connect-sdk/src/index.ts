@@ -221,6 +221,15 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     // The caller may have torn the launch down while the probe ran — a
     // component unmounting behind a modal is the ordinary way that happens.
     if (launch.destroyed) return;
+    // Or the user dismissed it from the overlay, and the caller has not torn
+    // it down yet: their `onClose` may leave that for later. Mounting the
+    // flow now would put it back in front of someone who just closed it, so
+    // the surface is emptied of its loading state instead, since nothing is
+    // coming to replace it.
+    if (launch.finished) {
+      launch.surface.clear();
+      return;
+    }
     enter(launch, verdict, launchUrl);
   });
 

@@ -200,9 +200,13 @@ const STYLES = `
     height: 14px;
   }
 
+  /* Two rings, dark inside light, so one of them shows against whatever is
+     behind the button: the dimmed page on a wide screen, the white panel on
+     a narrow one. */
   .close:focus-visible {
-    outline: 2px solid #ffffff;
-    outline-offset: 2px;
+    outline: 2px solid #1a1a1a;
+    outline-offset: 0;
+    box-shadow: 0 0 0 4px #ffffff;
   }
 
   /* Present from the start so it can announce, taking no space until it has
