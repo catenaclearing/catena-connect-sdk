@@ -465,7 +465,9 @@ that page delivers the outcome. Without them the flow stays on its last
 screen, and your webhooks are the only record. The URLs are optional, and
 only the redirect path relies on them: the iframe and popup modes report
 the outcome by message. A popup whose launching page has closed or
-navigated away also falls back to them.
+navigated away also falls back to them. A launching page inside a frame
+never takes this path: the tab is not its to navigate, so the surface stays
+and asks the user to allow pop-ups.
 
 Popups must be allowed on the launching page, because your page opens the
 popup-mode window.
@@ -918,7 +920,8 @@ confirm that this browser will run the flow in a frame. The causes:
   the page reloads.
 
 The flow still works through the button, which opens it in a window, or in
-the tab when the browser blocks the window too (the next entry). On an
+the tab when the browser blocks the window too and your page is not itself
+framed (the next entry). On an
 unregistered origin or with an unknown key, though, the window posts nothing
 to your page. When the policy is the cause, allow the origin of your
 invitation URL in `frame-src`, or in `child-src` if your policy has no
@@ -937,8 +940,8 @@ an unanswered frame on a registered origin leaves nothing there
 **Clicking "Continue" navigates the tab away.** The browser blocked the window
 too, so the flow continued in the tab. This is the third mode, working as
 designed. A page inside a frame is never navigated this way: the surface
-asks the user to allow pop-ups and press Continue again instead. If your invitation has redirect URLs, make sure both pages call
-`resume()`. Without them, the flow ends on its last screen and your webhooks
+asks the user to allow pop-ups and press Continue again instead. If your
+invitation has redirect URLs, make sure both pages call `resume()`. Without them, the flow ends on its last screen and your webhooks
 are the record ([The three modes](#the-three-modes),
 [`resume(options)`](#resumeoptions)).
 

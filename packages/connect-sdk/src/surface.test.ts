@@ -684,6 +684,18 @@ describe("announcing", () => {
     expect(surface.mount.querySelector("button")).not.toBeNull();
   });
 
+  it("goes back to the affordance's own sentence when given nothing", () => {
+    const surface = createSurface();
+    surface.showContinue(() => {});
+    surface.announce("Something changed.");
+
+    surface.announce();
+
+    expect(surface.mount.querySelector(".status")?.textContent).toBe(
+      "Continue in a new window to finish connecting."
+    );
+  });
+
   it("does nothing once the surface is gone", () => {
     const surface = createSurface();
     surface.destroy();

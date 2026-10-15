@@ -282,6 +282,9 @@ function offer(launch: Launch, launchUrl: string): void {
   // The identifier of the record redirect mode wrote, if it got that far. Held
   // so the teardown can clear that record and no other.
   let pending: string | null = null;
+  // Whether the live region is saying the window was blocked, so a retry that
+  // opens one can take that back.
+  let refused = false;
 
   launch.surface.showContinue(() => {
     // A launch that already ended, or was torn down with the affordance still
@@ -315,6 +318,7 @@ function offer(launch: Launch, launchUrl: string): void {
     // affordance stays, and says what would let the next press work.
     if (popup === null && isFramed()) {
       launch.surface.announce(BLOCKED_MESSAGE);
+      refused = true;
       return;
     }
 
@@ -330,6 +334,14 @@ function offer(launch: Launch, launchUrl: string): void {
 
     opened = popup;
     launch.source = () => popup;
+
+    // The window this press asked for is open now. Left alone, the region
+    // would go on telling the user to allow pop-ups and press again, and a
+    // press from here only brings that window back.
+    if (refused) {
+      launch.surface.announce();
+      refused = false;
+    }
 
     // A window gone almost as soon as it opened, with the flow still live,
     // was cut off, not closed: see `warnSevered`. One whose flow already

@@ -1269,6 +1269,20 @@ describe("a window refused inside a frame", () => {
     expect(opened).toHaveBeenCalledTimes(2);
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
+
+  it("stops saying the window was blocked once a press opens it", async () => {
+    vi.spyOn(window, "open")
+      .mockReturnValueOnce(null)
+      .mockReturnValue(fakeWindow());
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, false);
+
+    continueButton()?.click();
+    continueButton()?.click();
+
+    expect(status()).toBe("Continue in a new window to finish connecting.");
+  });
 });
 
 describe("the user closing the window themselves", () => {
