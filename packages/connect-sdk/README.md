@@ -896,10 +896,11 @@ invitation URL in `frame-src`, or in `child-src` if your policy has no
 `frame-src`, or in `default-src` if it has neither. The cookie probe is a
 frame on the same origin and falls under the same directive. The package
 makes no requests of its own, so no other directive needs to change. A
-refused cookie decides within one round trip. A frame that loads and never
-answers, including on an unregistered origin, waits about six seconds after
-it loads before the button appears, and a frame that never loads at all waits
-up to eight. The policy case and an unregistered
+refused cookie decides within one round trip. A probe frame that loads and
+never answers, including on an unregistered origin, waits about six seconds
+after it loads before the button appears, and one that never loads at all
+waits up to eight. The flow's own iframe waits eight seconds after it loads,
+as in the bullet above. The policy case and an unregistered
 origin show in the browser console as a violation report. A refused cookie or
 an unanswered frame on a registered origin leaves nothing there
 ([The three modes](#the-three-modes)).
