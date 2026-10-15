@@ -142,6 +142,11 @@ and your webhooks still fire. Whether it succeeded or not, the user stays on
 the flow's last screen, with no button back to your site.
 [The three modes](#the-three-modes) explains when each mode is used.
 
+None of this applies when the page that calls `open()` is itself inside a
+frame. The tab is not that page's to navigate, so a blocked popup leaves the
+surface where it is, with a message asking the user to allow pop-ups and
+press Continue again.
+
 ## Verify your integration
 
 1. The launching page's origin is registered against your embed key
@@ -345,14 +350,17 @@ kept so the next launch with the same embed key skips the check.
 
 ### One flow at a time
 
-Calling `open()` while a launch is live focuses the existing surface and
-returns that launch's handle. It does not start a second flow. In a
-`container`, focusing the live surface does nothing visible.
+Calling `open()` while a launch is live brings it back to the user and
+returns that launch's handle. It does not start a second flow. In the popup
+mode, once the window is open, that means focusing the window. Otherwise it
+focuses the overlay, and in a `container` it does nothing visible.
 
 Once a launch has ended (after `onSuccess`, `onExit` or `onClose`) and you
 have not called `destroy()`, `open()` replaces it: the old launch gets
 `onClose` if it has not had one, its surface is removed, and a new flow
-starts with a new handle.
+starts with a new handle. If that `onClose` throws, the new flow still
+starts, and the error is reported from its own task, the way an error thrown
+from any other callback is.
 
 ## Events
 
@@ -928,7 +936,8 @@ an unanswered frame on a registered origin leaves nothing there
 
 **Clicking "Continue" navigates the tab away.** The browser blocked the window
 too, so the flow continued in the tab. This is the third mode, working as
-designed. If your invitation has redirect URLs, make sure both pages call
+designed. A page inside a frame is never navigated this way: the surface
+asks the user to allow pop-ups and press Continue again instead. If your invitation has redirect URLs, make sure both pages call
 `resume()`. Without them, the flow ends on its last screen and your webhooks
 are the record ([The three modes](#the-three-modes),
 [`resume(options)`](#resumeoptions)).

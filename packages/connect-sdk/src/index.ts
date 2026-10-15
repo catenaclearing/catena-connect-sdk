@@ -71,6 +71,12 @@ interface Launch {
    * while the flow itself ran on, revealed by the fallback, with nothing said.
    */
   source: () => Window | null;
+  /**
+   * Bring the launch back to the user when they ask for it again. The
+   * surface, until popup mode opens a window: from then on the flow is in that
+   * window, and the surface is only the affordance that opened it.
+   */
+  refocus: () => void;
   /** Everything to undo, newest first. */
   cleanups: Array<() => void>;
   /**
@@ -98,7 +104,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     // A second launch while one is live is a double click. They want the
     // surface they already have, not a second flow behind it.
     if (!live.finished) {
-      live.surface.focus();
+      live.refocus();
       return live.handle;
     }
     // A launch that ran to its end and was never torn down still owns a
@@ -112,7 +118,15 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     // they acted, not a late one. `dismiss()` settles the same state either
     // way, so a flow that did send its own never gets a second.
     const finished = live;
-    finished.listener.dismiss();
+    try {
+      finished.listener.dismiss();
+    } catch (error) {
+      // Their `onClose` threw. Letting it out of here would stop this launch
+      // with the old surface still standing, and the user would have to ask
+      // twice. It is reported the way an exception from any other callback
+      // is, out of its own task, and the relaunch goes ahead.
+      rethrowLater(error);
+    }
 
     // `dismiss()` delivers `onClose` synchronously, and starting the next
     // flow from that callback is as ordinary as starting it from `onSuccess`.
@@ -189,6 +203,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     surface,
     listener,
     source: none,
+    refocus: () => surface.focus(),
     cleanups: [listener.stop],
     opened: false,
     finished: false,
@@ -294,6 +309,15 @@ function offer(launch: Launch, launchUrl: string): void {
 
     const popup = openPopup(withEmbedMode(launchUrl, EMBED_POPUP));
 
+    // Refused inside a frame. The tab is not this page's to take: a redirect
+    // from here navigates only the frame, which loads the flow framed, in the
+    // third-party context the probe has already found it cannot run in. The
+    // affordance stays, and says what would let the next press work.
+    if (popup === null && isFramed()) {
+      launch.surface.announce(BLOCKED_MESSAGE);
+      return;
+    }
+
     // The browser refused even this, outright or by handing back a window
     // that was already closed, so the flow runs in this tab. Nothing is torn
     // down and nothing is emitted: the page is about to be destroyed by the
@@ -319,6 +343,17 @@ function offer(launch: Launch, launchUrl: string): void {
     });
   });
 
+  // A second `open()` while the window is up is the user looking for the
+  // flow, and the flow is in the window. Focusing the surface would bring
+  // back only the button that opened it.
+  launch.refocus = () => {
+    if (opened !== null && !isClosed(opened)) {
+      opened.focus();
+      return;
+    }
+    launch.surface.focus();
+  };
+
   launch.cleanups.push(() => {
     stopWatch?.();
     stopWatch = null;
@@ -342,6 +377,37 @@ function offer(launch: Launch, launchUrl: string): void {
 /** The source of a launch with no window to trust yet, or any more. */
 function none(): null {
   return null;
+}
+
+/**
+ * What the affordance says when the browser refused the window and the page
+ * is in a frame, so the tab is not ours to run the flow in instead.
+ */
+const BLOCKED_MESSAGE =
+  "Your browser blocked the new window. Allow pop-ups for this site, then press Continue again.";
+
+/**
+ * Whether this page is inside a frame. Reading `top` is allowed across
+ * origins; the guard is for a browser that throws anyway, where carrying on
+ * as if unframed keeps today's redirect.
+ */
+function isFramed(): boolean {
+  try {
+    return window.top !== window.self;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Report a caller's exception without letting it unwind through us. Thrown
+ * from a task of its own, it reaches the page's error handling the way one
+ * thrown from a message-event callback does.
+ */
+function rethrowLater(error: unknown): void {
+  setTimeout(() => {
+    throw error;
+  }, 0);
 }
 
 /**
