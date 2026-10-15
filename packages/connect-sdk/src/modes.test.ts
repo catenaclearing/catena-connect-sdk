@@ -730,6 +730,30 @@ describe("relaunching out of a terminal callback", () => {
     ).toHaveLength(1);
   });
 
+  it("relaunches even when the old launch's onClose throws", async () => {
+    // The dismissal runs their `onClose` inside this `open()`. Letting its
+    // exception out stopped the relaunch with the old surface still up, and
+    // the user had to ask twice.
+    const { origin, inviteUrl } = nextInvite();
+    const onClose = vi.fn(() => {
+      throw new Error("from onClose");
+    });
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onClose }));
+    await answerProbe(origin, true);
+    sendEvent(origin, flowFrame()?.contentWindow, "success");
+
+    const second = open({ inviteUrl, embedKey: "pk_test" });
+    handles.push(second);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(
+      [...document.body.children].filter((el) => el.shadowRoot !== null)
+    ).toHaveLength(1);
+    // Still reported, out of a task of its own, as a throwing callback is
+    // when a message delivers it.
+    expect(() => vi.advanceTimersByTime(0)).toThrow("from onClose");
+  });
+
   it("adds no second dismissal to a flow that sent its own", async () => {
     const { origin, inviteUrl } = nextInvite();
     const onClose = vi.fn();
@@ -944,6 +968,40 @@ describe("launching on an unsupported verdict", () => {
     expect(popup.focus).toHaveBeenCalledTimes(1);
   });
 
+  it("brings the window forward when open() is called again", async () => {
+    // The flow is in the window. Focusing the surface would bring back only
+    // the button that opened it.
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const { origin, inviteUrl } = nextInvite();
+    const first = open({ inviteUrl, embedKey: "pk_test" });
+    handles.push(first);
+    await answerProbe(origin, false);
+    continueButton()?.click();
+
+    const again = open({ inviteUrl, embedKey: "pk_test" });
+
+    expect(again).toBe(first);
+    expect(popup.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("focuses the surface again once that window has closed", async () => {
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, false);
+    continueButton()?.click();
+    // Closed inside the watchdog's gap, so the launch is still live.
+    popup.closed = true;
+    document.body.focus();
+
+    open({ inviteUrl, embedKey: "pk_test" });
+
+    expect(popup.focus).not.toHaveBeenCalled();
+    expect(surfaceHost()?.shadowRoot?.activeElement).not.toBeNull();
+  });
+
   it("keeps one watchdog across a repeat activation", async () => {
     const popup = fakeWindow();
     vi.spyOn(window, "open").mockReturnValue(popup);
@@ -1156,6 +1214,74 @@ describe("a window cut off from this page as soon as it opened", () => {
     vi.advanceTimersByTime(500);
 
     expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a window refused inside a frame", () => {
+  // Redirect mode would navigate only the frame this page is in, loading the
+  // flow framed in the third-party context the probe already ruled out.
+
+  beforeEach(() => {
+    vi.spyOn(window, "top", "get").mockReturnValue({} as Window);
+  });
+
+  it("leaves the tab alone", async () => {
+    vi.spyOn(window, "open").mockReturnValue(null);
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, false);
+
+    continueButton()?.click();
+
+    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("says what would let the next press work, and keeps the button", async () => {
+    vi.spyOn(window, "open").mockReturnValue(null);
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, false);
+
+    continueButton()?.click();
+
+    expect(status()).toBe(
+      "Your browser blocked the new window. Allow pop-ups for this site, then press Continue again."
+    );
+    expect(continueButton()).not.toBeNull();
+  });
+
+  it("opens the window on the next press once it is allowed", async () => {
+    const popup = fakeWindow();
+    const opened = vi
+      .spyOn(window, "open")
+      .mockReturnValueOnce(null)
+      .mockReturnValue(popup);
+    const onOpen = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onOpen }));
+    await answerProbe(origin, false);
+
+    continueButton()?.click();
+    continueButton()?.click();
+    sendEvent(origin, popup, "open");
+
+    expect(opened).toHaveBeenCalledTimes(2);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops saying the window was blocked once a press opens it", async () => {
+    vi.spyOn(window, "open")
+      .mockReturnValueOnce(null)
+      .mockReturnValue(fakeWindow());
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test" }));
+    await answerProbe(origin, false);
+
+    continueButton()?.click();
+    continueButton()?.click();
+
+    expect(status()).toBe("Continue in a new window to finish connecting.");
   });
 });
 

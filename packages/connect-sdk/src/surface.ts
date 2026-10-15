@@ -243,6 +243,12 @@ export interface Surface {
    * between, because the caller spends that activation on a `window.open`.
    */
   showContinue(onActivate: () => void): void;
+  /**
+   * Replace what the live region says, leaving everything else in place. For
+   * news about the affordance the user just pressed. With no message, the
+   * region goes back to the affordance's own sentence.
+   */
+  announce(message?: string): void;
   /** Empty the mount point without tearing the surface down. */
   clear(): void;
   /**
@@ -450,6 +456,11 @@ export function createSurface(container?: HTMLElement): Surface {
         onActivate();
       });
       panel.append(button);
+    },
+
+    announce(message = CONTINUE_MESSAGE) {
+      if (destroyed) return;
+      status.textContent = message;
     },
 
     clear() {

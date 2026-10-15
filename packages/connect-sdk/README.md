@@ -142,6 +142,11 @@ and your webhooks still fire. Whether it succeeded or not, the user stays on
 the flow's last screen, with no button back to your site.
 [The three modes](#the-three-modes) explains when each mode is used.
 
+None of this applies when the page that calls `open()` is itself inside a
+frame. The tab is not that page's to navigate, so a blocked popup leaves the
+surface where it is, with a message asking the user to allow pop-ups and
+press Continue again.
+
 ## Verify your integration
 
 1. The launching page's origin is registered against your embed key
@@ -345,14 +350,17 @@ kept so the next launch with the same embed key skips the check.
 
 ### One flow at a time
 
-Calling `open()` while a launch is live focuses the existing surface and
-returns that launch's handle. It does not start a second flow. In a
-`container`, focusing the live surface does nothing visible.
+Calling `open()` while a launch is live brings it back to the user and
+returns that launch's handle. It does not start a second flow. In the popup
+mode, once the window is open, that means focusing the window. Otherwise it
+focuses the overlay, and in a `container` it does nothing visible.
 
 Once a launch has ended (after `onSuccess`, `onExit` or `onClose`) and you
 have not called `destroy()`, `open()` replaces it: the old launch gets
 `onClose` if it has not had one, its surface is removed, and a new flow
-starts with a new handle.
+starts with a new handle. If that `onClose` throws, the new flow still
+starts, and the error is reported from its own task, the way an error thrown
+from any other callback is.
 
 ## Events
 
@@ -457,7 +465,9 @@ that page delivers the outcome. Without them the flow stays on its last
 screen, and your webhooks are the only record. The URLs are optional, and
 only the redirect path relies on them: the iframe and popup modes report
 the outcome by message. A popup whose launching page has closed or
-navigated away also falls back to them.
+navigated away also falls back to them. A launching page inside a frame
+never takes this path: the tab is not its to navigate, so the surface stays
+and asks the user to allow pop-ups.
 
 Popups must be allowed on the launching page, because your page opens the
 popup-mode window.
@@ -910,7 +920,8 @@ confirm that this browser will run the flow in a frame. The causes:
   the page reloads.
 
 The flow still works through the button, which opens it in a window, or in
-the tab when the browser blocks the window too (the next entry). On an
+the tab when the browser blocks the window too and your page is not itself
+framed (the next entry). On an
 unregistered origin or with an unknown key, though, the window posts nothing
 to your page. When the policy is the cause, allow the origin of your
 invitation URL in `frame-src`, or in `child-src` if your policy has no
@@ -928,8 +939,9 @@ an unanswered frame on a registered origin leaves nothing there
 
 **Clicking "Continue" navigates the tab away.** The browser blocked the window
 too, so the flow continued in the tab. This is the third mode, working as
-designed. If your invitation has redirect URLs, make sure both pages call
-`resume()`. Without them, the flow ends on its last screen and your webhooks
+designed. A page inside a frame is never navigated this way: the surface
+asks the user to allow pop-ups and press Continue again instead. If your
+invitation has redirect URLs, make sure both pages call `resume()`. Without them, the flow ends on its last screen and your webhooks
 are the record ([The three modes](#the-three-modes),
 [`resume(options)`](#resumeoptions)).
 
