@@ -168,7 +168,7 @@ export const SEVERED_MS = 1500;
  */
 export function warnSevered(elapsedMs: number): void {
   console.warn(
-    `@catenaclearing/connect-sdk: the Catena Connect window reported itself closed ${Math.round(elapsedMs)}ms after it opened, before the flow could post anything, so onClose was delivered with no outcome. ` +
+    `@catenaclearing/connect-sdk: the Catena Connect window reported itself closed ${Math.round(elapsedMs)}ms after it opened, before the flow posted an outcome, so onClose was delivered with no outcome. ` +
       "The usual cause is a Cross-Origin-Opener-Policy of same-origin on this page, which cuts it off from any window it opens to another site. The flow keeps running in that window, but this page cannot hear it. " +
       "Serve the launching page with Cross-Origin-Opener-Policy: same-origin-allow-popups, or without the header."
   );
