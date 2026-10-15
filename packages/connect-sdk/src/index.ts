@@ -307,13 +307,14 @@ function offer(launch: Launch, launchUrl: string): void {
     opened = popup;
     launch.source = () => popup;
 
-    // A window gone almost as soon as it opened was cut off, not closed: see
-    // `warnSevered`. It still ends the launch, because nothing more will
-    // arrive from it.
+    // A window gone almost as soon as it opened, with the flow still live,
+    // was cut off, not closed: see `warnSevered`. One whose flow already
+    // reached its end said so before it went, which a severed window cannot.
+    // Either way it ends the launch, because nothing more will arrive from it.
     const openedAt = Date.now();
     stopWatch = watchClosed(popup, () => {
       const elapsed = Date.now() - openedAt;
-      if (elapsed < SEVERED_MS) warnSevered(elapsed);
+      if (elapsed < SEVERED_MS && !launch.finished) warnSevered(elapsed);
       launch.listener.dismiss();
     });
   });

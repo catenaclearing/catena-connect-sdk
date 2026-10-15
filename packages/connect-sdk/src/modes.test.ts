@@ -1122,6 +1122,27 @@ describe("a window cut off from this page as soon as it opened", () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
+  it("says nothing about a window that finished its flow before it went", async () => {
+    // A flow can post its outcome and close inside the threshold. It spoke,
+    // so it was not cut off.
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const onSuccess = vi.fn();
+    const onClose = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onSuccess, onClose }));
+    await answerProbe(origin, false);
+    continueButton()?.click();
+
+    sendEvent(origin, popup, "success");
+    popup.closed = true;
+    vi.advanceTimersByTime(500);
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   it("times a reopened window from its own opening", async () => {
     const first = await openWindow();
     vi.advanceTimersByTime(SEVERED_MS);
