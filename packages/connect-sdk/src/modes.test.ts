@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { open, preload } from "./index";
-import { mountFrame, OPEN_GRACE_MS, openPopup, watchClosed } from "./modes";
+import {
+  mountFrame,
+  OPEN_GRACE_MS,
+  openPopup,
+  SEVERED_MS,
+  watchClosed,
+} from "./modes";
 import { BUDGET_MS, resolvedVerdict } from "./probe";
 import { createSurface } from "./surface";
 
@@ -134,6 +140,10 @@ const realLocation = window.location;
 
 beforeEach(() => {
   vi.useFakeTimers();
+  // Most tests here close their window moments after opening it, which is
+  // what a severed window looks like. The warning that earns is pinned in its
+  // own block below; everywhere else it is only noise.
+  vi.spyOn(console, "warn").mockImplementation(() => {});
   // A refused window is redirect mode's cue, so every refusal below assigns
   // the tab. jsdom implements no navigation, and its whole `location` is
   // replaced rather than the method spied on because `assign` is defined
@@ -1058,6 +1068,94 @@ describe("a window the browser refused", () => {
     sendEvent(origin, first, "open");
 
     expect(onOpen).not.toHaveBeenCalled();
+  });
+});
+
+describe("a window cut off from this page as soon as it opened", () => {
+  // A launching page under `Cross-Origin-Opener-Policy: same-origin` loses
+  // its handle once the window navigates cross-site, about a tenth of a
+  // second in: the handle reports `closed` and nothing is ever posted. Only
+  // the timing tells it apart from a user closing the window.
+
+  async function openWindow(onClose = vi.fn()): Promise<FakeWindow> {
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onClose }));
+    await answerProbe(origin, false);
+    continueButton()?.click();
+    return popup;
+  }
+
+  it("names the opener policy and the value that fixes it", async () => {
+    const popup = await openWindow();
+
+    popup.closed = true;
+    vi.advanceTimersByTime(500);
+
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    const message = String(vi.mocked(console.warn).mock.calls[0]?.[0]);
+    expect(message).toContain("Cross-Origin-Opener-Policy");
+    expect(message).toContain("same-origin-allow-popups");
+    expect(message).toContain("@catenaclearing/connect-sdk");
+  });
+
+  it("still ends the launch with onClose, since nothing more will arrive", async () => {
+    const onClose = vi.fn();
+    const popup = await openWindow(onClose);
+
+    popup.closed = true;
+    vi.advanceTimersByTime(500);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing about a window the user closed after using it", async () => {
+    const onClose = vi.fn();
+    const popup = await openWindow(onClose);
+
+    vi.advanceTimersByTime(SEVERED_MS);
+    popup.closed = true;
+    vi.advanceTimersByTime(500);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("says nothing about a window that finished its flow before it went", async () => {
+    // A flow can post its outcome and close inside the threshold. It spoke,
+    // so it was not cut off.
+    const popup = fakeWindow();
+    vi.spyOn(window, "open").mockReturnValue(popup);
+    const onSuccess = vi.fn();
+    const onClose = vi.fn();
+    const { origin, inviteUrl } = nextInvite();
+    handles.push(open({ inviteUrl, embedKey: "pk_test", onSuccess, onClose }));
+    await answerProbe(origin, false);
+    continueButton()?.click();
+
+    sendEvent(origin, popup, "success");
+    popup.closed = true;
+    vi.advanceTimersByTime(500);
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("times a reopened window from its own opening", async () => {
+    const first = await openWindow();
+    vi.advanceTimersByTime(SEVERED_MS);
+    // Closed inside the watchdog's gap, then reopened from the affordance.
+    first.closed = true;
+    const second = fakeWindow();
+    vi.mocked(window.open).mockReturnValue(second);
+    continueButton()?.click();
+
+    second.closed = true;
+    vi.advanceTimersByTime(500);
+
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 });
 

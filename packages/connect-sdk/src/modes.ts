@@ -147,6 +147,34 @@ export function watchClosed(popup: Window, onClosed: () => void): () => void {
 }
 
 /**
+ * How soon after opening a window may report itself closed before we stop
+ * believing a person closed it. A window takes longer than this to draw, let
+ * alone to be read and dismissed.
+ */
+export const SEVERED_MS = 1500;
+
+/**
+ * Tell the developer that the window they just watched close was not closed
+ * by the user.
+ *
+ * A launching page served with `Cross-Origin-Opener-Policy: same-origin`
+ * loses its handle on a window the moment the window navigates to another
+ * site: the handle reports `closed`, the window's `opener` is gone, and the
+ * flow runs on in it with nothing to post to. From here that is
+ * indistinguishable from the user closing the window, except for how soon it
+ * happens, and the header is invisible to script, so the console is the only
+ * place left to say so. The launch still ends the way a close ends it, because
+ * this page will hear nothing more from that window either way.
+ */
+export function warnSevered(elapsedMs: number): void {
+  console.warn(
+    `@catenaclearing/connect-sdk: the Catena Connect window reported itself closed ${Math.round(elapsedMs)}ms after it opened, before the flow posted an outcome, so onClose was delivered with no outcome. ` +
+      "The usual cause is a Cross-Origin-Opener-Policy of same-origin on this page, which cuts it off from any window it opens to another site. The flow keeps running in that window, but this page cannot hear it. " +
+      "Serve the launching page with Cross-Origin-Opener-Policy: same-origin-allow-popups, or without the header."
+  );
+}
+
+/**
  * Run the flow in this tab, because the browser refused the window too.
  *
  * The record goes down before the assignment: once the tab is assigned this

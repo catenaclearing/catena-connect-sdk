@@ -13,6 +13,8 @@ import {
   OPEN_GRACE_MS,
   openPopup,
   redirect,
+  SEVERED_MS,
+  warnSevered,
   watchClosed,
 } from "./modes";
 import { clearPending, takePending } from "./pending";
@@ -304,7 +306,17 @@ function offer(launch: Launch, launchUrl: string): void {
 
     opened = popup;
     launch.source = () => popup;
-    stopWatch = watchClosed(popup, launch.listener.dismiss);
+
+    // A window gone almost as soon as it opened, with the flow still live,
+    // was cut off, not closed: see `warnSevered`. One whose flow already
+    // reached its end said so before it went, which a severed window cannot.
+    // Either way it ends the launch, because nothing more will arrive from it.
+    const openedAt = Date.now();
+    stopWatch = watchClosed(popup, () => {
+      const elapsed = Date.now() - openedAt;
+      if (elapsed < SEVERED_MS && !launch.finished) warnSevered(elapsed);
+      launch.listener.dismiss();
+    });
   });
 
   launch.cleanups.push(() => {
