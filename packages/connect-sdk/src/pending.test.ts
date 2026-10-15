@@ -370,6 +370,26 @@ describe("resuming a redirected launch", () => {
       expect(onExit).toHaveBeenCalledWith({ reason: "failure" });
     });
 
+    it("forwards an empty reason when the URL cannot be read", async () => {
+      await launchIntoRedirect();
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+          get search(): string {
+            throw new Error("no access");
+          },
+        },
+      });
+      const order: string[] = [];
+      const onExit = vi.fn(() => order.push("exit"));
+      const onClose = vi.fn(() => order.push("close"));
+
+      resume({ outcome: "exit", onExit, onClose });
+
+      expect(onExit).toHaveBeenCalledWith({ reason: "" });
+      expect(order).toEqual(["exit", "close"]);
+    });
+
     it("reads nothing into a success", async () => {
       await launchIntoRedirect();
       arriveWith("?status=success&tsp_count=2");
