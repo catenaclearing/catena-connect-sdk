@@ -257,8 +257,8 @@ The failure page also receives integration requests, with
 `status=integration-requested` in its query parameters, the same ending the
 iframe and popup modes report as `onExit`.
 
-The core's caveats apply as written: `connectionIds` and `reason` are always
-empty on this path (read the query parameters if you need them), both
+The core's caveats apply as written: `connectionIds` is always empty on this
+path, `reason` comes from the failure URL's `skip_reason` or `status`, both
 destination pages must be on the launching origin, and a
 callback means a redirected launch left this tab recently, not that this page
 was reached from the flow. Keep the hook to your two destination pages and

@@ -62,9 +62,9 @@ export interface ConnectExitEvent {
   /**
    * Why the flow ended, as reported by the app. Forwarded unchanged.
    *
-   * Empty on a resumed launch. The app reports the reason over the message
-   * channel, which a full-page redirect does not have, so we carry no reason
-   * rather than an invented one.
+   * On a resumed launch, read from the failure URL the flow returned to: its
+   * `skip_reason` when there is one, otherwise its `status`, which is how the
+   * message channel words the same exit. Empty if the URL carries neither.
    */
   reason: string;
 }
