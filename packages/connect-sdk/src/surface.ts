@@ -169,6 +169,37 @@ const STYLES = `
     outline-offset: 2px;
   }
 
+  /* The overlay's way out, in the root's corner rather than the panel's, so
+     it sits over the dimmed page wherever the viewport leaves room for one.
+     Where it does not, the panel fills the viewport and this sits over the
+     flow's corner, which is why it carries its own background. */
+  .close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: #1a1a1a;
+    font-family: inherit;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+
+  .close:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
   /* Present from the start so it can announce, taking no space until it has
      something to say. */
   .status:empty {
@@ -217,6 +248,9 @@ const LOADING_MESSAGE = "Loading…";
 const CONTINUE_MESSAGE = "Continue in a new window to finish connecting.";
 const CONTINUE_LABEL = "Continue";
 
+/** The overlay's close control, named for a screen reader. */
+const CLOSE_LABEL = "Close";
+
 export interface Surface {
   /**
    * Where a mode mounts its frame or its continue affordance. Inside the
@@ -264,8 +298,17 @@ export interface Surface {
  * Create the surface. With a container we render inline inside it, without one
  * we render our own overlay on the document. Behavior is identical either way,
  * which keeps an inline mount from being a special case anywhere else.
+ *
+ * `onDismiss` is what the overlay's close button and Escape key ask for. Only
+ * the overlay has them: it covers the page and takes it out of the tab order,
+ * so without a way out of its own a flow that never says it is done leaves the
+ * user nowhere to go but a reload. A caller's container sits in a page they
+ * still control, and dismissing it is theirs to offer.
  */
-export function createSurface(container?: HTMLElement): Surface {
+export function createSurface(
+  container?: HTMLElement,
+  onDismiss?: () => void
+): Surface {
   // The container's own document, which is not always the one this package
   // was loaded in: a page can call us from its top window and hand over an
   // element inside a same-origin frame. Everything is built from that
@@ -311,6 +354,33 @@ export function createSurface(container?: HTMLElement): Surface {
   panel.append(status);
 
   root.append(panel);
+
+  // After the panel, so the close button is the last stop in the overlay's tab
+  // order rather than the first: the flow is what the user came for.
+  //
+  // Asked for, not done: the surface comes down when the caller tears it down
+  // from the `onClose` this produces, the same as for every other dismissal.
+  if (overlay && onDismiss !== undefined) {
+    const close = doc.createElement("button");
+    close.type = "button";
+    close.className = "close";
+    close.setAttribute("aria-label", CLOSE_LABEL);
+    close.textContent = "\u00d7";
+    close.addEventListener("click", () => {
+      onDismiss();
+    });
+    root.append(close);
+
+    // Only reaches us while focus is on the overlay's own controls. Once the
+    // user is working inside the flow, its keys go to a cross-origin document
+    // that this page cannot hear.
+    root.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onDismiss();
+    });
+  }
+
   shadow.append(root);
 
   // Nothing else gives the host a size, and without one `.root`'s percentage

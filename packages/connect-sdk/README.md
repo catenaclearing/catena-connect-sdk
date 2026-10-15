@@ -377,9 +377,11 @@ you learn the outcome from your webhooks.
 | `onClose` | The surface should be dismissed. | none |
 
 `onSuccess` and `onExit` are mutually exclusive. Whichever arrives first is the
-outcome. `onClose` follows either one. It arrives on its own in one case: in
-the popup mode, when the user closes the popup window (the package checks
-every half second). Nothing in the iframe mode produces it alone.
+outcome. `onClose` follows either one. It arrives on its own in two cases: the
+user closes the popup window in the popup mode (the package checks every half
+second), or the user presses the overlay's close button or Escape
+([below](#the-package-never-dismisses-your-surface)). Nothing inside the flow
+produces it alone.
 
 `onOpen` can arrive more than once, for example after the embedded page
 reloads, so make the handler safe to run twice.
@@ -429,8 +431,18 @@ channel to deliver any of them.
 The package never removes anything on its own: not the overlay, not the
 iframe, not the popup window. `onClose` means the flow is finished with the
 surface. On `onClose`, call `destroy()` on the handle, or tear down your own
-`container` or modal when it suits you. The overlay has no close button and
-no Escape handling, so `destroy()` is the only way it goes away.
+`container` or modal when it suits you.
+
+The overlay has a close button in its top-right corner, and Escape does the
+same while focus is on the overlay's own controls. Escape pressed inside the
+flow goes to the flow's page, which this package cannot hear. Either one ends
+the launch and calls `onClose`, with no `onSuccess` or `onExit` before it
+unless the flow had already sent one. The overlay still stays up until you
+call `destroy()`, so an `onClose` handler that does nothing leaves the user
+looking at it.
+
+A `container` gets no close button. It sits in your page, so offering a way
+out of it is up to you: call `destroy()` from your own control.
 
 ## The three modes
 

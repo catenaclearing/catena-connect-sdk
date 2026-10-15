@@ -167,6 +167,64 @@ describe("one flow at a time", () => {
   });
 });
 
+describe("the overlay's close button", () => {
+  function closeButton(): HTMLButtonElement | null {
+    return (
+      surfacesIn(document.body)[0]?.shadowRoot?.querySelector("button.close") ??
+      null
+    );
+  }
+
+  it("delivers onClose, leaving the teardown to the caller", () => {
+    const onClose = vi.fn();
+    launch({ onClose });
+
+    closeButton()?.click();
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(surfacesIn(document.body)).toHaveLength(1);
+  });
+
+  it("comes down with the destroy() the quick start calls from onClose", () => {
+    const handle: { current?: sdk.CatenaConnectHandle } = {};
+    handle.current = launch({ onClose: () => handle.current?.destroy() });
+
+    closeButton()?.click();
+
+    expect(surfacesIn(document.body)).toHaveLength(0);
+  });
+
+  it("delivers onClose once however often it is pressed", () => {
+    const onClose = vi.fn();
+    launch({ onClose });
+
+    closeButton()?.click();
+    closeButton()?.click();
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends the launch, so the next open() starts a fresh one", () => {
+    const first = launch();
+    closeButton()?.click();
+
+    const second = launch();
+
+    expect(second).not.toBe(first);
+    expect(surfacesIn(document.body)).toHaveLength(1);
+  });
+
+  it("is not offered inside a caller's container", () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    launch({ container });
+
+    expect(
+      surfacesIn(container)[0]?.shadowRoot?.querySelector("button.close")
+    ).toBeNull();
+  });
+});
+
 describe("destroy", () => {
   it("removes the surface", () => {
     const handle = launch();

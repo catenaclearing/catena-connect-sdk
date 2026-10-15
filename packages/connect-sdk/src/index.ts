@@ -162,7 +162,12 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // the two, and a caller re-rendering in that window should not be able to
   // move the frame somewhere else.
   const launchUrl = buildLaunchUrl(options);
-  const surface = createSurface(options.container);
+  // The overlay's close button and Escape key end the launch through the same
+  // dismissal the popup watchdog uses, so the caller hears an ordinary
+  // `onClose` and stays the one who takes the surface down.
+  const surface = createSurface(options.container, () =>
+    launch.listener.dismiss()
+  );
 
   // Frame mode needs no user gesture, which is what lets the surface go up
   // first and the mode be decided behind it.

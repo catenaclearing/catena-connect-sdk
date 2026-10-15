@@ -60,7 +60,7 @@ function held(): boolean {
 
 /** The continue affordance, which lives inside the shadow root too. */
 function continueButton(): HTMLButtonElement | null {
-  return surfaceHost()?.shadowRoot?.querySelector("button") ?? null;
+  return surfaceHost()?.shadowRoot?.querySelector("button.continue") ?? null;
 }
 
 /**
