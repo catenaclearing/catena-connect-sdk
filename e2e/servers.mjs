@@ -273,6 +273,31 @@ const partnerPage = `<!doctype html>
   window.ready = true;
 </script></body></html>`;
 
+/**
+ * A page with no bundler and no module script: the browser build from a
+ * classic `<script>` tag, called through the global it defines.
+ */
+const scriptTagPage = `<!doctype html>
+<html><head><title>Script tag (test)</title>
+<script src="/sdk/connect-sdk.global.js"></script>
+</head>
+<body><script>
+  window.connectOrigin = ${JSON.stringify(CONNECT)};
+  window.events = [];
+  window.sdk = {
+    open(embedKey) {
+      window.events = [];
+      window.handle = CatenaConnect.open({
+        inviteUrl: window.connectOrigin + "/i/test",
+        embedKey,
+        onOpen: () => window.events.push("open"),
+        onClose: () => window.events.push("close"),
+      });
+    },
+  };
+  window.ready = true;
+</script></body></html>`;
+
 /** A frame of the partner's own, holding the modal a launch can mount in. */
 const partnerFrame = `<!doctype html>
 <html><body style="margin:0">
@@ -290,6 +315,11 @@ function partner(req, res) {
       ...(coop ? { "cross-origin-opener-policy": coop } : {}),
     });
     res.end(partnerPage);
+    return;
+  }
+  if (url.pathname === "/script") {
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(scriptTagPage);
     return;
   }
   if (url.pathname === "/frame") {
