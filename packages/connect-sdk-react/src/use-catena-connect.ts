@@ -45,7 +45,8 @@ export interface UseCatenaConnectOptions
   /**
    * Mount the flow inline in this element instead of in the overlay. A ref,
    * read when `open()` is called, so it may point at an element rendered by
-   * the same component.
+   * the same component. `open()` throws if the ref is not attached to an
+   * element by then, rather than fall back to the overlay.
    */
   container?: RefObject<HTMLElement | null>;
   /**
@@ -84,7 +85,8 @@ export interface UseCatenaConnectResult {
   /**
    * Launch the flow with the options as of the latest render, or bring the
    * live surface back if a launch is already up. Throws when `inviteUrl` is
-   * absent, and whatever the core's `open()` throws on an invalid URL.
+   * absent, when `container` was given but its ref is not attached, and
+   * whatever the core's `open()` throws on an invalid URL.
    *
    * A value set in the same event handler has not rendered yet, so `open()`
    * cannot see it. To launch with a value you have only just obtained, such
@@ -161,6 +163,15 @@ export function useCatenaConnect(
 
       // A component that has unmounted has nothing left to own a launch.
       if (unmounted.current) return;
+
+      // Asked for inline, with nothing to mount into: the element has not
+      // rendered yet, or has gone. Launching anyway would put the flow in the
+      // overlay over the whole page, which is not what was asked for.
+      if (container !== undefined && container.current === null) {
+        throw new Error(
+          "useCatenaConnect: container was given but its ref is not attached to an element"
+        );
+      }
 
       const launched = openFlow({
         ...launchOptions,

@@ -108,6 +108,30 @@ describe("useCatenaConnectResume", () => {
     expect(order).toEqual(["exit", "close"]);
   });
 
+  it("rethrows a throwing handler from its own task, not the effect", () => {
+    vi.useFakeTimers();
+    try {
+      plantRecord();
+      const failure = new Error("handler failed");
+      const onClose = vi.fn();
+      const root = render(
+        <ReturnPage
+          outcome="success"
+          onSuccess={() => {
+            throw failure;
+          }}
+          onClose={onClose}
+        />
+      );
+
+      expect(root.container.textContent).toBe("Welcome back");
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(() => vi.runAllTimers()).toThrow(failure);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("reports nothing while no launch is pending", () => {
     const onSuccess = vi.fn();
     const onExit = vi.fn();

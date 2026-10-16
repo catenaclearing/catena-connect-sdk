@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { Component, type ReactNode, StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CatenaConnect } from "./catena-connect";
@@ -13,6 +13,21 @@ import {
   successMessage,
   surfacesIn,
 } from "./test-utils";
+
+/** The smallest error boundary: renders the error it caught, if any. */
+class Boundary extends Component<{ children: ReactNode }, { error: unknown }> {
+  state = { error: null as unknown };
+  static getDerivedStateFromError(error: unknown) {
+    return { error };
+  }
+  render() {
+    return this.state.error === null ? (
+      this.props.children
+    ) : (
+      <p data-testid="caught">{String(this.state.error)}</p>
+    );
+  }
+}
 
 const mounted: Mounted[] = [];
 
@@ -133,6 +148,25 @@ describe("CatenaConnect", () => {
     expect(surfacesIn(hostIn(root))).toHaveLength(1);
     expect(surfacesIn(document.body)).toHaveLength(0);
     await settled();
+  });
+
+  it("throws an invite URL the core refuses to the nearest error boundary", () => {
+    // React reports the caught error on the console; this test expects it.
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    const root = render(
+      <Boundary>
+        <CatenaConnect
+          inviteUrl="http://connect.example.com/invite/abc123"
+          embedKey={embedKey}
+        />
+      </Boundary>
+    );
+    quiet.mockRestore();
+
+    expect(root.container.querySelector('[data-testid="caught"]')).not.toBe(
+      null
+    );
+    expect(surfacesIn(document.body)).toHaveLength(0);
   });
 
   it("tears the launch down and leaves nothing behind on unmount", async () => {
