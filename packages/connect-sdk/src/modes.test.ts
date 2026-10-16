@@ -1816,7 +1816,7 @@ describe("a probe outlives the launch that was torn down while it ran", () => {
     // launch at all, and the verdict is kept for the life of the page. So a
     // launch destroyed mid-probe leaves it to finish — a hidden frame and a
     // timer bounded by the budget, which then remove themselves — and the
-    // launch after it skips the probe. Cancelling it would throw away
+    // launch after it skips the probe. Canceling it would throw away
     // an answer seconds from arriving, and would have to be reference-counted
     // against a preload or a second launch sharing the same round trip.
     const { origin, inviteUrl } = nextInvite();
