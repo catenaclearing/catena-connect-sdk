@@ -117,7 +117,7 @@ This part is optional. If a browser blocks both the iframe and the popup, the
 flow takes over the browser tab your app is in. When the user finishes, it
 returns to the success or failure URL on your invitation, if the invitation
 has them. Without them the flow stays on its last screen, there is no page
-for the hook to run on, and only your webhooks tell you the outcome. To get
+for the hook to run on, and only your webhooks record what was connected. To get
 the outcome when the URLs are set, render a component at each one that calls
 the resume hook:
 

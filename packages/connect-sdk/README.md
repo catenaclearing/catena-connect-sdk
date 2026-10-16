@@ -507,7 +507,7 @@ browser tab your page is in to the connect origin and runs there,
 full-page. Your page unloads, along with its callbacks. If your invitation
 has a `success_redirect_url` and `failure_redirect_url`, the flow returns to one of them, and `resume()` on
 that page delivers the outcome. Without them the flow stays on its last
-screen, and only your webhooks report the outcome. The URLs are optional, and
+screen, and only your webhooks record what was connected. The URLs are optional, and
 only the redirect path relies on them: the iframe and popup modes report
 the outcome by message. A popup whose launching page has closed or
 navigated away also falls back to them. A launching page inside a frame
@@ -767,7 +767,7 @@ sandbox without `allow-popups` blocks it.
 A link, or a navigation, with `embed=redirect`. The flow runs in the tab. If
 your invitation has a success and a failure URL, the flow returns to one of
 them, and that is where you learn the outcome. Without them, the flow ends on
-its last screen and only your webhooks report the outcome:
+its last screen and only your webhooks record what was connected:
 
 ```html
 <a href="https://connect.example.com/?invite=YOUR_INVITE_ID&embed_key=YOUR_EMBED_KEY&embed=redirect">
@@ -806,8 +806,8 @@ Calling `window.open()` again with the name `catena-connect` lands on the
 first window, but reloads it and restarts the flow. To bring an open window
 back, check `popup.closed` and call `popup.focus()` instead.
 
-With no listener at all, your connection webhooks tell you the outcome, and
-on the redirect path so does the page the flow returns to, if your invitation
+With no listener at all, your connection webhooks still record what was connected, and on
+the redirect path the page the flow returns to receives the outcome, if your invitation
 has redirect URLs. For many sites that is a complete integration.
 
 ### Reading the completion messages
@@ -989,7 +989,7 @@ too, so the flow continued in the tab. This is the redirect mode. A page
 inside a frame is never navigated this way: the surface asks the user to
 allow pop-ups and press Continue again instead. If your invitation has
 redirect URLs, make sure both pages call `resume()`. Without them, the flow
-ends on its last screen and only your webhooks report the outcome
+ends on its last screen and only your webhooks record what was connected
 ([The three modes](#the-three-modes),
 [`resume(options)`](#resumeoptions)).
 
