@@ -81,23 +81,33 @@ packages. It defines a global named `CatenaConnect` with `open`, `resume`
 and `preload`, which work the same as the imported functions.
 
 ```html
+<button id="connect">Connect your fleet</button>
+
 <script
   src="https://cdn.jsdelivr.net/npm/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js"
   integrity="sha384-HASH"
   crossorigin="anonymous"
 ></script>
-<script>
-  button.addEventListener("click", () => {
-    const connect = CatenaConnect.open({
-      inviteUrl,
-      embedKey,
-      onSuccess: ({ connectionIds }) => continueYourFlow(connectionIds),
-      onExit: ({ reason }) => offerRetry(reason),
-      onClose: () => connect.destroy(),
-    });
-  });
-</script>
+<script src="/connect.js"></script>
 ```
+
+```js
+// connect.js, served from your own origin
+document.getElementById("connect").addEventListener("click", () => {
+  const connect = CatenaConnect.open({
+    inviteUrl,
+    embedKey,
+    onSuccess: ({ connectionIds }) => continueYourFlow(connectionIds),
+    onExit: ({ reason }) => offerRetry(reason),
+    onClose: () => connect.destroy(),
+  });
+});
+```
+
+As in the [Quick start](#quick-start), `inviteUrl`, `embedKey`,
+`continueYourFlow` and `offerRetry` stand for your own values and functions.
+Hand the invite URL and the embed key to the page from your server
+([`inviteUrl`](#inviteurl)).
 
 Replace `VERSION` with an exact version from the
 [package page](https://www.npmjs.com/package/@catenaclearing/connect-sdk),
@@ -119,11 +129,17 @@ The command prints the hash alone. Put it after `sha384-` in the `integrity`
 attribute. Each version has a different hash, so compute it again when you
 upgrade.
 
-If your page sends a Content Security Policy, the script tag needs one more
-directive than an install from npm does:
+If your page sends a Content Security Policy, the script tag adds to what an
+install from npm needs:
 
 - `script-src` must allow the CDN you load the file from,
-  `https://cdn.jsdelivr.net` or `https://unpkg.com`.
+  `https://cdn.jsdelivr.net` or `https://unpkg.com`, and wherever your own
+  launch script is served from, such as `'self'`. If your policy has a
+  `script-src-elem`, it applies to `<script>` tags instead of `script-src`, so
+  allow both there.
+
+- Keep the launch code in a file, as above. An inline `<script>` runs only if
+  your policy allows it through a nonce, a hash or `'unsafe-inline'`.
 
 - The directive that governs frames must still allow the origin of your
   invitation URL, as for any install. This does not change with the script
