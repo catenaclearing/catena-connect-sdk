@@ -74,6 +74,68 @@ Copy the command from here or from that page rather than typing the name.
 Look-alike names exist, and `@catenaclearing` is the only scope that is ours
 ([Official packages](#official-packages)).
 
+### From a script tag
+
+If your page has no bundler, load the browser build from a CDN that serves npm
+packages. It defines a global named `CatenaConnect` with `open`, `resume`
+and `preload`, which work the same as the imported functions.
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js"
+  integrity="sha384-HASH"
+  crossorigin="anonymous"
+></script>
+<script>
+  button.addEventListener("click", () => {
+    const connect = CatenaConnect.open({
+      inviteUrl,
+      embedKey,
+      onSuccess: ({ connectionIds }) => continueYourFlow(connectionIds),
+      onExit: ({ reason }) => offerRetry(reason),
+      onClose: () => connect.destroy(),
+    });
+  });
+</script>
+```
+
+Replace `VERSION` with an exact version from the
+[package page](https://www.npmjs.com/package/@catenaclearing/connect-sdk),
+such as the one you tested against. Do not use a tag like `@latest` or leave
+the version off. With either, your page loads each new release as soon as it
+is published, before you have tried it. unpkg serves the same file at `https://unpkg.com/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js`.
+
+Replace `HASH` with the file's subresource integrity hash. The browser then
+refuses the script if the CDN serves anything other than the published file.
+Compute the hash from the package on npm, not from the file the CDN serves:
+
+```sh
+TARBALL=$(npm pack @catenaclearing/connect-sdk@VERSION)
+tar -xOzf "$TARBALL" package/dist/connect-sdk.global.js \
+  | openssl dgst -sha384 -binary | openssl base64 -A
+```
+
+The command prints the hash alone. Put it after `sha384-` in the `integrity`
+attribute. Each version has a different hash, so compute it again when you
+upgrade.
+
+If your page sends a Content Security Policy, the script tag needs one more
+directive than an install from npm does:
+
+- `script-src` must allow the CDN you load the file from,
+  `https://cdn.jsdelivr.net` or `https://unpkg.com`.
+
+- The directive that governs frames must still allow the origin of your
+  invitation URL, as for any install. This does not change with the script
+  tag ([Troubleshooting](#troubleshooting)).
+
+The build ships no TypeScript types. If you want types, install the package
+and import it instead:
+
+```sh
+npm install @catenaclearing/connect-sdk@beta
+```
+
 ## Quick start
 
 ```js
@@ -1057,6 +1119,9 @@ you call or what you receive.
   and the exported TypeScript types for the options, the handle and the event
   payloads.
 
+- The script-tag build: the file `dist/connect-sdk.global.js` and the
+  `CatenaConnect` global it defines, carrying the same three exports.
+
 - The six callbacks, `onOpen`, `onConnection`, `onConnectionDeleted`,
   `onSuccess`, `onExit` and `onClose`, and the fields of their payloads:
   `connectionId`, `connectionIds` and `reason`.
@@ -1092,8 +1157,9 @@ you call or what you receive.
 - Which of the three modes a given browser ends up in. The package tests each
   browser, and browser behavior changes over time.
 
-- The file layout under `dist`, the `sessionStorage` keys the redirect mode
-  writes, and anything else you could only reach by inspecting internals.
+- The file layout under `dist`, apart from the script-tag build, the
+  `sessionStorage` keys the redirect mode writes, and anything else you could
+  only reach by inspecting internals.
 
 - Query parameters already on your invite URL. The package writes its own
   (the embed key, the mode, its own version, and the presentation options you

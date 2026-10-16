@@ -12,6 +12,8 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "unpkg": "./dist/connect-sdk.global.js",
+  "jsdelivr": "./dist/connect-sdk.global.js",
   "exports": {
     ".": {
       "import": {
@@ -39,7 +41,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup"
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsup"
   },
   "publishConfig": {
     "access": "public"
