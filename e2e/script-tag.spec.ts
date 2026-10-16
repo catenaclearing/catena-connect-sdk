@@ -6,6 +6,13 @@ import { expect, test } from "@playwright/test";
  * is the only place the global it defines is checked.
  */
 
+// `SDK_DIST` can point the server at an earlier release, and releases
+// before the browser build have no file to load.
+test.beforeEach(async ({ request }) => {
+  const build = await request.get("/sdk/connect-sdk.global.js");
+  test.skip(!build.ok(), "This build has no browser bundle");
+});
+
 test("defines the global with the three exports", async ({ page }) => {
   await page.goto("/script");
   await page.waitForFunction(() => (window as { ready?: boolean }).ready);

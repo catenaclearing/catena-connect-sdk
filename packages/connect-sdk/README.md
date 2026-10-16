@@ -67,8 +67,8 @@ Look-alike names exist, and `@catenaclearing` is the only scope that is ours
 ### From a script tag
 
 If your page has no bundler, load the browser build from a CDN that serves npm
-packages. It puts `open`, `resume` and `preload` on a global named
-`CatenaConnect`, and they behave exactly as the imports do.
+packages. It defines a global named `CatenaConnect` with `open`, `resume`
+and `preload`, which work the same as the imported functions.
 
 ```html
 <script
@@ -92,13 +92,12 @@ packages. It puts `open`, `resume` and `preload` on a global named
 Replace `VERSION` with an exact version from the
 [package page](https://www.npmjs.com/package/@catenaclearing/connect-sdk),
 such as the one you tested against. Do not use a tag like `@latest` or leave
-the version off. Either one gives your page every new release the moment it
-is published, without you looking at it first. The same file is served by
-unpkg, at `https://unpkg.com/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js`.
+the version off. With either, your page loads each new release as soon as it
+is published, before you have tried it. unpkg serves the same file at `https://unpkg.com/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js`.
 
-Replace `HASH` with the file's subresource integrity hash, so the browser
-refuses the script if what the CDN serves is not what was published. Take the
-hash from the package as the registry holds it, not from the CDN:
+Replace `HASH` with the file's subresource integrity hash. The browser then
+refuses the script if the CDN serves anything other than the published file.
+Compute the hash from the package on npm, not from the file the CDN serves:
 
 ```sh
 npm pack @catenaclearing/connect-sdk@VERSION
@@ -106,15 +105,18 @@ tar -xOzf catenaclearing-connect-sdk-VERSION.tgz package/dist/connect-sdk.global
   | openssl dgst -sha384 -binary | openssl base64 -A
 ```
 
-The hash changes with every version, so work it out again when you upgrade.
+Each version has a different hash, so compute it again when you upgrade.
 
 If your page sends a Content Security Policy, its `script-src` must allow the
-CDN's origin, `https://cdn.jsdelivr.net` or `https://unpkg.com`. That is the
-only directive this adds to what [Troubleshooting](#troubleshooting) already
-asks for.
+CDN's origin, `https://cdn.jsdelivr.net` or `https://unpkg.com`, as well as
+the framing rules in [Troubleshooting](#troubleshooting).
 
 The build ships no TypeScript types. If you want types, install the package
-and import it instead.
+and import it instead:
+
+```sh
+npm install @catenaclearing/connect-sdk@beta
+```
 
 ## Quick start
 
