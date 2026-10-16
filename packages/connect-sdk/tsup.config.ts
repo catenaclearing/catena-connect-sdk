@@ -8,7 +8,8 @@ const define = {
 
 // Neither build cleans `dist/`: tsup runs the two side by side, and a clean
 // in one could delete what the other has just written. The package's `build`
-// script empties `dist/` before tsup starts instead.
+// script empties `dist/` before tsup starts instead, with `node:fs` so it
+// works on every platform.
 export default defineConfig([
   {
     entry: ["src/index.ts", "src/contract.ts"],

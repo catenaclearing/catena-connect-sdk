@@ -7,8 +7,14 @@ import { expect, test } from "@playwright/test";
  */
 
 // `SDK_DIST` can point the server at an earlier release, and releases
-// before the browser build have no file to load.
+// before the browser build have no file to load. Only those runs skip: on the
+// current build a missing file is a failure.
+// The e2e files compile without Node's types, hence the narrow cast.
+const env = (globalThis as { process?: { env: Record<string, unknown> } })
+  .process?.env;
+
 test.beforeEach(async ({ request }) => {
+  if (!env?.SDK_DIST) return;
   const build = await request.get("/sdk/connect-sdk.global.js");
   test.skip(!build.ok(), "This build has no browser bundle");
 });
