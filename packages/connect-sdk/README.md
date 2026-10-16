@@ -7,15 +7,25 @@ One call renders the connection flow on your page and tells you how it ended.
 The core package has no runtime dependencies.
 
 - [What you need](#what-you-need)
+
 - [Install](#install)
+
 - [Quick start](#quick-start)
+
 - [If the browser blocks the popup](#if-the-browser-blocks-the-popup)
+
 - [Verify your integration](#verify-your-integration)
+
 - [`open(options)`](#openoptions)
+
 - [Events](#events)
+
 - [The three modes](#the-three-modes)
+
 - [Without the package](#without-the-package)
+
 - [Troubleshooting](#troubleshooting)
+
 - [Versioning and support](#versioning-and-support)
 
 ## What you need
@@ -80,7 +90,7 @@ button.addEventListener("click", () => {
 });
 ```
 
-That is the whole integration for most browsers. The flow renders in an
+For most browsers, that is all you need. The flow renders in an
 iframe on your page, or in a popup window where the browser will not allow the
 iframe. `onClose` calls `destroy()` so the surface goes away when the flow is
 done.
@@ -93,24 +103,24 @@ redirected tab it reads **Return to** followed by your name as configured in
 Catena. Pressing it calls `onSuccess` with the connections made in this
 session, and then `onClose`.
 
-The package does not remove the overlay, the iframe or the popup window on its
-own. `destroy()` removes all of them. That is why the quick start calls
-`destroy()` on the handle `open()` returns from `onClose`.
+The package leaves the overlay, the iframe and the popup window in place until
+you call `destroy()`, which removes all of them
+([The package never dismisses your surface](#the-package-never-dismisses-your-surface)).
+That is why the quick start calls `destroy()` from `onClose`.
 
 A user can also leave without pressing the button. Your connection webhooks
-record every connection either way ([Events](#events)).
+still record each connection ([Events](#events)).
 
 ## If the browser blocks the popup
 
-This section is optional. If a browser blocks both the iframe and the popup,
-the flow takes over the browser tab your page is in: it navigates away from
-your page and runs full-page. When the user finishes, the flow sends them to
+You only need this section to get the outcome in browsers that block both the
+iframe and the popup. In those browsers the flow takes over the browser tab
+your page is in: it navigates away from your page and runs full-page. When the user finishes, the flow sends them to
 the success or failure URL on your invitation (`success_redirect_url` and
 `failure_redirect_url`), and your page's callbacks are gone.
 
-The success URL means success only: the user arrives there with
-`status=success` after a connection. The failure URL receives
-`status=failure` when the user declines consent or disconnects, and
+The user reaches the success URL only after a connection, with
+`status=success`. The failure URL receives `status=failure` when the user declines consent or disconnects, and
 `status=integration-requested` when they request an integration or join a
 waitlist, the same ending the iframe and popup modes report as `onExit`. The
 flow also appends `skip_reason`, on a decline with a reason, and `tsp_count`.
@@ -134,8 +144,8 @@ resume({
 });
 ```
 
-These are two separate call sites, not one call with `outcome` swapped
-([`resume(options)`](#resumeoptions)).
+Each page needs its own call ([`resume(options)`](#resumeoptions) explains
+why).
 
 If your invitation has no redirect URLs, the flow still completes on this path
 and your webhooks still fire. Whether it succeeded or not, the user stays on
@@ -143,27 +153,32 @@ the flow's last screen, with no button back to your site.
 [The three modes](#the-three-modes) explains when each mode is used.
 
 None of this applies when the page that calls `open()` is itself inside a
-frame. The tab is not that page's to navigate, so a blocked popup leaves the
-surface where it is, with a message asking the user to allow pop-ups and
-press Continue again.
+frame. The package does not navigate the tab from a frame, so a blocked popup
+leaves the surface where it is, with a message asking the user to allow
+pop-ups and press Continue again.
 
 ## Verify your integration
 
 1. The launching page's origin is registered against your embed key
    ([What you need](#what-you-need),
    [When you receive nothing](#when-you-receive-nothing)).
+
 2. Popups are allowed on the launching page
    ([The three modes](#the-three-modes),
    [The provider window](#the-provider-window)).
+
 3. The page's Content Security Policy allows the connect origin to be framed
    ([Troubleshooting](#troubleshooting)).
+
 4. `onOpen` arrives on the launching page. It is the flow's own message, and
    it reaches a registered origin only, so it shows the origin is registered.
+
 5. If you cover the redirect path, the success and failure pages are on the
    launching origin and call `resume()` with the right `outcome`
    ([If the browser blocks the popup](#if-the-browser-blocks-the-popup)).
-6. Your connection webhooks are the record, and a callback is the prompt to
-   check them ([Events](#events)).
+
+6. You confirm connections from your connection webhooks, and treat a callback
+   as the prompt to check them ([Events](#events)).
 
 ## `open(options)`
 
@@ -183,8 +198,8 @@ Returns `{ destroy(): void }`.
 
 The origin the package trusts is derived from this URL. That origin is used
 for the iframe, the popup, and every inbound message check. The package has no
-origin of its own, so pointing it at a development environment is just a
-different invite URL. No separate build, no configuration.
+origin of its own, so to point it at a development environment, pass a
+development invite URL. You need no separate build or configuration.
 
 The URL must be `https`, except on `localhost`, `127.0.0.1` and `[::1]`. Over
 plain http on a shared network, anyone on that network can be the origin: they
@@ -193,8 +208,8 @@ can serve the flow, post a fake success, and read the embed key.
 Pass only invite URLs you created, in the Catena dashboard or through the
 Catena API, and hand them to the page from your own server. Never take one from
 your page's query string, a form field, or anything else a visitor or another
-site can set. Whoever chooses the URL chooses the origin the package trusts,
-and can do the same three things.
+site can set. Anyone who can set the URL sets the origin the package trusts,
+and can then do the same three things.
 
 `open()` throws a `TypeError` if the URL does not parse, is not http or
 https, or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`.
@@ -204,18 +219,18 @@ outside a browser.
 ### `container`
 
 Pass an element to mount the flow inline. Omit it and the package renders its
-own overlay. Behavior is otherwise identical, including on the fallback modes,
-with one difference: the overlay has a close button and Escape handling, and a
-container has neither, so the way out of it is yours to provide
+own overlay. The two behave the same, including in the fallback modes, except
+that the overlay has a close button and Escape handling and a container has
+neither. With a container, you provide the way to close it
 ([The package never dismisses your surface](#the-package-never-dismisses-your-surface)).
-This is also the way to use your own close control or modal chrome. The
+A container is also how you use your own close control or modal chrome. The
 package only removes what it created, so your container is left as it was
 found.
 
 The container can live in a different document from the one the package runs
 in, such as a modal inside a same-origin frame of your page, with `open()`
 called from the top window. The flow is built in the container's document and
-its events are delivered either way.
+its events are still delivered.
 
 The surface fills the container, and it is at least 480px tall. Give the
 container a height of its own, at least that much. In a shorter container the
@@ -242,11 +257,11 @@ open({
 });
 ```
 
-Each one is forwarded to the app as a query parameter on the launch URL,
-exactly as you supplied it, and the app carries it across its own navigations
-so the appearance holds for the whole flow. The app validates them, not this
-package. An invalid value is ignored on its own: that one setting falls back
-to its default, the others still apply, and the flow still renders.
+Each one is forwarded to the app unchanged, as a query parameter on the
+launch URL, and the app keeps it as it moves between its own pages, so it
+applies to the entire flow. The app validates them, not this package. An
+invalid value is ignored, and only that setting falls back to its default. The
+others still apply and the flow still renders.
 
 The known values autocomplete, but a value your installed version has never
 seen still compiles and is still sent. The app ignores values it does not
@@ -257,7 +272,7 @@ new one.
 
 Which layout the flow renders.
 
-`"full"`, the default, is the flow as it renders on its own: a background,
+`"full"`, the default, is the flow as it renders outside your page: a background,
 a navigation header carrying the logo, a theme toggle, help and Disconnect,
 and the connection card with the "Secure connection powered by Catena"
 attribution below it.
@@ -266,16 +281,16 @@ attribution below it.
 it. It fills whatever it is mounted in edge to edge, so the card's own
 background is all you see: no page background behind it and no border or
 rounded corners of its own. The surface around it supplies the frame. The
-header goes with everything else, so there is no theme toggle and no
-Disconnect. Help moves into the card, at the top right of each screen. The
-logo still appears on the invite consent card, which
+header is removed as well, so there is no theme toggle and no Disconnect.
+Help moves into the card, at the top right of each screen. The logo still
+appears on the invite consent card, which
 opens an invited session in either variant.
 
 The package's own overlay is a rounded panel of at most 460 by 720 pixels,
 and `"card"` is the fit for it and for a `container` you have already styled.
-The option rides on the launch URL, so it also applies when the flow falls
-back to a popup or a redirect, where it has a whole tab. `"full"` suits that,
-and a container with room for it.
+The option is part of the launch URL, so it also applies when the flow falls
+back to a popup or a redirect, where the flow fills the tab. `"full"` suits
+that, and a container with room for it.
 
 A user who needs to disconnect a provider needs the header. Use `"full"`, or
 send them to the flow outside your page.
@@ -326,8 +341,8 @@ messages. Lighter and darker shades for the badges and messages are derived
 from it.
 
 Same format as `brandColor`, and the same values are ignored. It is
-independent of `brandColor`: omit it and the green stays, whatever
-`brandColor` is.
+independent of `brandColor`: omit it and the green stays, even if you set
+`brandColor`.
 
 #### `logoUrl` and `logoUrlDark`
 
@@ -360,9 +375,9 @@ after the flow has ended, so you can call it from a component teardown without
 checking state first.
 
 The one thing it leaves alone is a capability probe already in flight. The
-probe belongs to the page, not to the launch (`preload()` runs one with no
-launch at all). It cleans itself up within its own timeout, and its result is
-kept so the next launch with the same embed key skips the check.
+probe is shared by the page rather than tied to one launch, and `preload()`
+runs one with no launch at all. It cleans itself up within its own timeout,
+and its result is kept so the next launch with the same embed key skips the check.
 
 ### One flow at a time
 
@@ -393,11 +408,11 @@ you learn the outcome from your webhooks.
 | `onClose` | The surface should be dismissed. | none |
 
 `onSuccess` and `onExit` are mutually exclusive. Whichever arrives first is the
-outcome. `onClose` follows either one. It arrives on its own in two cases: the
-user closes the popup window in the popup mode (the package checks every half
+outcome. `onClose` follows either one. It arrives without an outcome in only
+two cases: the user closes the popup window in the popup mode (the package checks every half
 second), or the user presses the overlay's close button or Escape
-([below](#the-package-never-dismisses-your-surface)). Nothing inside the flow
-produces it alone.
+([below](#the-package-never-dismisses-your-surface)). The flow itself never
+sends it without an outcome.
 
 `onOpen` can arrive more than once, for example after the embedded page
 reloads, so make the handler safe to run twice.
@@ -411,9 +426,8 @@ user connects another provider, you get `onConnection` for it but no second
 It fires when the user presses the button on the success screen (**Done** in
 the iframe, **Return to** followed by your name in a popup or tab), which
 happens after the connection already exists. A user who connects and then
-closes the surface, or just leaves the tab, never produces `onSuccess`, and
-their connection is still real. Treat `onSuccess` as "they are done and
-heading back
+closes the surface, or leaves the tab, never produces `onSuccess`, but the
+connection still exists. Treat `onSuccess` as "they are done and heading back
 to you", and treat your connection webhooks as the record of what was actually
 established. `connectionIds` lists the connections this session made, less
 any the fleet deleted before finishing, and is best effort for the same
@@ -426,8 +440,8 @@ not dismiss your surface on it; the user may be about to add another provider.
 It exists mainly for the iframe mode, where the user is already looking at
 your page and may never press the button that produces `onSuccess`. The same
 `connectionId` can arrive twice if a user re-authorizes a provider twice in
-one session. As with `connectionIds`, treat it as a prompt to check, and your
-webhooks as the record.
+one session. As with `connectionIds`, treat it as a prompt to check your
+webhooks.
 
 ### `onConnectionDeleted` is a connection going away
 
@@ -444,15 +458,15 @@ channel to deliver any of them.
 
 ### The package never dismisses your surface
 
-The package never removes anything on its own: not the overlay, not the
-iframe, not the popup window. `onClose` means the flow is finished with the
+The package leaves the overlay, the iframe and the popup window in place
+until you call `destroy()`. `onClose` means the flow is finished with the
 surface. On `onClose`, call `destroy()` on the handle, or tear down your own
 `container` or modal when it suits you.
 
 The overlay has a close button in its top-right corner, and Escape does the
 same while focus is on the overlay's own controls. Escape pressed inside the
-flow goes to the flow's page, which this package cannot hear. Either one ends
-the launch and calls `onClose`, with no `onSuccess` or `onExit` before it
+flow goes to the flow's page, and this package does not receive it. Either
+one ends the launch and calls `onClose`, with no `onSuccess` or `onExit` before it
 unless the flow had already sent one, and none after it. The flow comes off
 the overlay at once, but the overlay itself stays up until you call
 `destroy()`, so an `onClose` handler that does nothing leaves the user
@@ -461,9 +475,8 @@ looking at an empty overlay.
 The close button cannot be turned off. The overlay sits above everything on
 your page and takes the rest of it out of the tab order, so a control of your
 own could not be reached while it is up. If you want your own close control,
-or any other chrome around the flow, pass a `container` and build the modal
-yourself. A `container` gets no close button and no Escape handling: call
-`destroy()` from your own control.
+or any other chrome around the flow, pass a `container`, build the modal
+yourself, and have your close control call `destroy()`.
 
 ## The three modes
 
@@ -473,41 +486,40 @@ is the redirect mode: it navigates away from the page holding your callbacks,
 and `resume()` delivers only the outcome you declare, followed by `onClose`.
 
 **Iframe.** The surface renders immediately with a loading state while the
-package checks whether this browser will run the flow in an iframe. If it
-will, the iframe mounts in the surface behind that loading state, which
+package checks whether this browser will run the flow in an iframe. The check
+needs no warm-up call, no popup and no user gesture. If the browser will run
+it, the iframe mounts in the surface behind that loading state, which
 stays up until the flow reports it is ready (the same message that becomes
 `onOpen`). If that report has not come eight seconds after the iframe's page
 loads, the package removes the iframe and falls back to the popup, because
-the usual cause is a browser refusing to render the flow in an iframe. No
-warm-up call, no popup, no user gesture needed. On a slow network the check
-can take a few seconds to arrive, and the loading state waits for it rather
+the usual cause is a browser refusing to render the flow in an iframe. On a
+slow network the check can take a few seconds to arrive, and the loading state waits for it rather
 than falling back early.
 
 **Popup.** The flow needs a cookie in a cross-site context, and not every
 browser will send one. Where the iframe check fails, or the iframe never
 reports it is ready, the surface shows a button instead, and clicking it
-opens the flow in a popup window. One extra click, only where the iframe
-cannot carry the flow.
+opens the flow in a popup window. The extra click only appears in browsers
+where the iframe cannot run the flow.
 
 **Redirect.** If the browser blocks the popup too, the flow navigates the
 browser tab your page is in to the connect origin and runs there,
-full-page. Your page and its callbacks are
-gone. If your invitation has a `success_redirect_url` and
-`failure_redirect_url`, the flow returns to one of them, and `resume()` on
+full-page. Your page unloads, along with its callbacks. If your invitation
+has a `success_redirect_url` and `failure_redirect_url`, the flow returns to one of them, and `resume()` on
 that page delivers the outcome. Without them the flow stays on its last
-screen, and your webhooks are the only record. The URLs are optional, and
+screen, and only your webhooks report the outcome. The URLs are optional, and
 only the redirect path relies on them: the iframe and popup modes report
 the outcome by message. A popup whose launching page has closed or
 navigated away also falls back to them. A launching page inside a frame
-never takes this path: the tab is not its to navigate, so the surface stays
-and asks the user to allow pop-ups.
+never takes this path: the package does not navigate the tab from a frame,
+so the surface stays and asks the user to allow pop-ups.
 
 Popups must be allowed on the launching page, because your page opens the
 popup-mode window.
 
-The decision is made by measurement, not by a browser-version table. A hidden
-iframe on the connect origin does a cookie round trip and reports whether the
-cookie came back. Only a positive result mounts the iframe.
+The package picks the mode by testing the browser. It does not look up the
+browser's name or version. A hidden iframe on the connect origin does a
+cookie round trip and reports whether the cookie came back. Only a positive result mounts the iframe.
 
 The redirect mode carries the launch across the navigation in
 `sessionStorage`. If storage is disabled, full, or throws on access, there is
@@ -525,12 +537,12 @@ from the connect origin. The provider's login runs there, and the flow closes
 the window once the connection is made. The surface you launched stays
 where it is and shows the new connection.
 
-That window belongs to the Catena app, not to this package and not to you. It
-is opened from the user's click and closed when it is done. The provider's
-pages never get a reference to your page; the window's opener is the Catena
-document. You cannot observe it and do not need to. `onConnection` arrives
-from the surface you launched, the same as for a provider that takes
-credentials.
+The Catena app opens that window from the user's click and closes it when it
+is done. Neither this package nor your page controls it. The provider's pages
+never get a reference to your page; the window's opener is the Catena
+document. Your page cannot observe the window and does not need to:
+`onConnection` arrives from the surface you launched, the same as for a
+provider that takes credentials.
 
 Two things to plan for:
 
@@ -561,8 +573,8 @@ resume({ outcome: "exit", onExit: ({ reason }) => {} });
 
 You have to state the outcome. The app signals success or failure by
 navigating to the success or failure URL on your invitation. The package
-is given your invite URL, not those destinations, so it cannot tell which page
-it woke up on. You can.
+is given your invite URL, not those destinations, so it cannot tell which of
+the two pages it is running on. Your code knows, so it passes the outcome.
 
 The flow appends `status` (`success`, `failure` or `integration-requested`),
 `skip_reason` on a decline with a reason, and `tsp_count` to the URL. The
@@ -579,15 +591,14 @@ Both pages must be on the same origin as the page that called `open()`, or
 `resume()` emits nothing.
 
 It emits the terminal callback you declared (`onSuccess` for `"success"`,
-`onExit` for `"exit"`), followed by `onClose`. Never `onOpen`: the flow
-reported itself ready on a page the navigation already destroyed.
+`onExit` for `"exit"`), followed by `onClose`. It never calls `onOpen`,
+because the page where the flow reported itself ready is gone by then.
 
 `onExit` gets the same `reason` the other modes report for the same exit:
 the URL's `skip_reason` when there is one, otherwise its `status` (for
 example `failure` or `integration-requested`). It is empty only if the URL
 carries neither. `connectionIds` is always empty, because nothing on the URL
-lists them. Read `tsp_count` from the query yourself if you need it. Your
-connection webhooks are the record, as they are on every path.
+lists them. Read `tsp_count` from the query yourself if you need it.
 
 With no launch in flight, or an expired one, `resume()` does nothing, so it
 can sit at the top of a destination page unconditionally.
@@ -605,42 +616,37 @@ waiting for it. `embedKey` is optional. Pass the same key you will pass to
 `open()` so the warmed check applies to the launch. Without it the check still
 runs, but `open()` repeats it with the key.
 
-It is an optimization, not a requirement. `open()` behaves the same whether or
-not you call it; the only difference is how long the loading state lasts
-before the flow starts loading. That
-is usually one network round trip, but the first contact with the connect
-origin can take a few seconds on a slow network or behind a corporate proxy.
+You do not have to call it. `open()` behaves the same without it; the only
+difference is how long the loading state lasts before the flow starts
+loading. That is usually one network round trip, but the first contact with
+the connect origin can take a few seconds on a slow network or behind a corporate proxy.
 Calling `preload()` when the page holding your button loads moves that wait
 off the user's click.
 
-It cannot break your page. An invite URL the package cannot derive an origin
-from is ignored here. The same URL throws from `open()`, where a launch is at
-stake.
-Outside a browser, as in a server render, `preload()` does nothing, so it is
-safe to call from code that also runs on the server.
+An invite URL the package cannot derive an origin from is ignored here,
+though the same URL makes `open()` throw. Outside a browser, as in a server
+render, `preload()` does nothing, so it is safe to call from code that also runs on the server.
 
 The result is held for the life of the page and never persisted. Browser
-settings change between visits, and a remembered "supported" would strand
-someone in an iframe their browser no longer allows. A check that timed out
-is not held at all: it says the network was slow that time, not what the
-browser allows, so the next `open()` checks again.
+settings can change between visits, and a saved result could put a user in an
+iframe their browser no longer allows. A check that timed out is not held at
+all, because a timeout reflects a slow network rather than the browser's
+settings, so the next `open()` checks again.
 
 ## When you receive nothing
 
-Each of these is a real outcome, not an error to surface. Your connection
-webhooks remain the record. The absence of a callback is never proof that
-nothing happened.
+None of these is an error to show the user. A missing callback does not mean
+nothing happened: your connection webhooks are still the record.
 
 **Unregistered origin.** The page you embed from is not registered against
 your embed key. The flow does not render in a frame, so the surface falls
 back to the popup. The flow runs there, but its messages are addressed
-elsewhere and the browser drops them. This is the origin check doing its
-job.
+elsewhere and the browser drops them.
 
-**Revoked or unresolvable embed key.** Deliberately indistinguishable from
-the above: the surface falls back to the popup, and the flow runs there
-with no origins to post to, so it sends nothing. You cannot tell them
-apart, and neither can an attacker.
+**Revoked or unresolvable embed key.** By design, this looks the same as an
+unregistered origin: the surface falls back to the popup, and the flow runs
+there with no origins to post to, so it sends nothing. Neither you nor an
+attacker can tell the two apart.
 
 **Severed opener.** Opening the flow through a link with `noopener` removes
 the channel the completion travels on. The user still finishes. The package
@@ -650,9 +656,9 @@ yourself.
 **`Cross-Origin-Opener-Policy: same-origin` on the launching page.** In the
 popup mode, the browser cuts your page off from the window as soon as it loads
 the flow. From your page the window looks closed, so you get `onClose` with
-no outcome shortly after the click, while the user carries on in a
-window your page cannot hear or close. If your invitation has redirect URLs,
-the flow then finishes by sending that window to one of them. Without them it
+no outcome shortly after the click, while the user carries on in a window
+your page can no longer get messages from or close. If your invitation has
+redirect URLs, the flow then finishes by sending that window to one of them. Without them it
 stays on its last screen. The package logs a console warning when a window
 closes this fast. Serve the page with `same-origin-allow-popups`
 instead, which keeps the popup connected and changes nothing else.
@@ -667,14 +673,14 @@ page that launched, or `resume()` emits nothing.
 
 **The user abandoned the surface.** No terminal event was produced because
 the flow never reached one. In a frame, a user who connects and never
-presses **Done** produces `onConnection` but no `onSuccess`. The connection
-is real.
+presses **Done** produces `onConnection` but no `onSuccess`, and the
+connection still exists.
 
-One caveat in the other direction: a callback means a redirected launch left
-this tab recently, not that this page was reached from the flow. An abandoned
-launch stays recorded for up to 30 minutes, and a `resume()` inside that
-window will consume it. Put the call on your two destination pages and nowhere
-else.
+The reverse can also happen. A callback from `resume()` means a redirected
+launch left this tab recently, not that this page was reached from the flow.
+An abandoned launch stays recorded for up to 30 minutes, and a `resume()` call
+during that time consumes it. Put the call on your two destination pages and
+nowhere else.
 
 ## Styling and isolation
 
@@ -685,8 +691,8 @@ The package's own overlay is a modal dialog. It takes focus when it opens,
 marks the rest of the document `inert` while it is up, and restores focus and
 the tab order on teardown. Anything you had already marked `inert` stays that
 way, so launching from inside your own modal gives your page back the way you
-had it. Mounted into a `container` you supplied, it does none of this. Your
-layout, your focus management.
+had it. Mounted into a `container` you supplied, it does none of this, and
+layout and focus management are up to you.
 
 ## Without the package
 
@@ -715,9 +721,9 @@ without them.
 
 `embed` names the context the flow is opened in: `iframe` for a frame on your
 page, `popup` for a window you open, `redirect` for the current tab. The flow
-picks its session cookie attributes from it, so a value that does not match
-the context is not cosmetic. A mismatched value breaks the session cookie or
-the message channel. A frame sent `popup` or `redirect` gets a cookie the
+picks its session cookie attributes from it, so the value must match the
+context. A mismatched value breaks the session cookie or the message
+channel. A frame sent `popup` or `redirect` gets a cookie the
 browser may not send back from a frame, so the flow can fail partway; a
 window sent `iframe` posts no messages.
 
@@ -736,9 +742,10 @@ package.
 write by hand it must be encoded as `%23`. `URLSearchParams` does that for you.
 
 [Presentation options](#presentation-options) describes what the six
-optional parameters do, and the same rules hold here: the flow validates the
-values, an invalid one falls back to its default on its own, and the four
-branding parameters apply only when the embed key resolves.
+optional parameters do, and the same rules apply here: the flow validates the
+values, an invalid one falls back to its default without affecting the
+others, and the four branding parameters apply only when the embed key
+resolves.
 
 ### A plain iframe, link or window
 
@@ -760,7 +767,7 @@ sandbox without `allow-popups` blocks it.
 A link, or a navigation, with `embed=redirect`. The flow runs in the tab. If
 your invitation has a success and a failure URL, the flow returns to one of
 them, and that is where you learn the outcome. Without them, the flow ends on
-its last screen and your webhooks are the record:
+its last screen and only your webhooks report the outcome:
 
 ```html
 <a href="https://connect.example.com/?invite=YOUR_INVITE_ID&embed_key=YOUR_EMBED_KEY&embed=redirect">
@@ -829,8 +836,8 @@ type CatenaConnectMessage = {
 ```
 
 The events mean what the [callbacks](#events) of the same name mean. The flow
-posts `close` straight after `success` or `exit`, never on its own. A user who
-closes your window produces nothing. If the surface stays up the user can
+posts `close` only right after `success` or `exit`. A user who closes your
+window produces nothing. If the surface stays up the user can
 press the button again, and the outcome and `close` are posted again; the
 package keeps only the first outcome, so a plain listener should too. `open`
 can arrive more than once, for example after the frame reloads.
@@ -838,10 +845,12 @@ can arrive more than once, for example after the frame reloads.
 Check three things before you trust a message, on every message:
 
 1. `event.origin` is the connect origin, the origin of your invitation URL.
+
 2. `event.source` is the frame or window you opened.
+
 3. `event.data.source` is `"catena-connect"`.
 
-A listener that does exactly that:
+A listener with those three checks:
 
 ```js
 const connectOrigin = new URL(inviteUrl).origin;
@@ -923,10 +932,10 @@ visit.
 **No shadow-root surface.** You style and position the frame or the window,
 and you decide when to take it down.
 
-Frame when you control the browsers, window when you do not, redirect when you
-need nothing on the page at all. The three modes the package moves between are
-all available to a plain integration by choosing the `embed` value and the
-opening method yourself.
+Use a frame when you control the browsers, a window when you do not, and a
+redirect when you need nothing on the page at all. The three modes the
+package moves between are all available to a plain integration by choosing
+the `embed` value and the opening method yourself.
 
 ## Troubleshooting
 
@@ -941,14 +950,19 @@ confirm that this browser will run the flow in a frame. The causes:
   violation. Register the exact origin: scheme, host and port must match, and
   `www` and the apex are different origins. Registered origins must be
   `https`, or `http` on `localhost` ([What you need](#what-you-need)).
+
 - The browser refused the flow's cookie in a frame.
+
 - Your page's Content Security Policy blocks the connect origin from being
   framed.
+
 - The probe frame never answered in time: a blocked request, a frame that
   never loaded, a slow network.
+
 - The check passed, but the flow's iframe loaded and never reported it was
   ready, usually because the connect origin refused to be framed. The button
   appears about eight seconds after that iframe loads.
+
 - This page already probed once with no answer. That verdict is kept until
   the page reloads.
 
@@ -971,11 +985,12 @@ an unanswered frame on a registered origin leaves nothing there
 ([The three modes](#the-three-modes)).
 
 **Clicking "Continue" navigates the tab away.** The browser blocked the window
-too, so the flow continued in the tab. This is the third mode, working as
-designed. A page inside a frame is never navigated this way: the surface
-asks the user to allow pop-ups and press Continue again instead. If your
-invitation has redirect URLs, make sure both pages call `resume()`. Without them, the flow ends on its last screen and your webhooks
-are the record ([The three modes](#the-three-modes),
+too, so the flow continued in the tab. This is the redirect mode. A page
+inside a frame is never navigated this way: the surface asks the user to
+allow pop-ups and press Continue again instead. If your invitation has
+redirect URLs, make sure both pages call `resume()`. Without them, the flow
+ends on its last screen and only your webhooks report the outcome
+([The three modes](#the-three-modes),
 [`resume(options)`](#resumeoptions)).
 
 **A provider's sign-in window is blocked.** Popups must be allowed on the
@@ -989,8 +1004,8 @@ look the same from your page. The flow falls back to the popup and runs
 there, but its messages are addressed elsewhere, or for an unknown or revoked
 key not sent at all. The other causes: a window or link you opened yourself
 with `noopener`, the flow ran in the tab and no page called `resume()`, the
-destination page is on another origin, or the user left. Your webhooks are
-the record in every case
+destination page is on another origin, or the user left. In every case, your
+webhooks still record the connections
 ([When you receive nothing](#when-you-receive-nothing)).
 
 **`onClose` arrives the moment the popup opens.** The launching page sends
@@ -1041,17 +1056,21 @@ you call or what you receive.
 - The documented exports, `open`, `resume` and `preload`, and their options,
   and the exported TypeScript types for the options, the handle and the event
   payloads.
+
 - The six callbacks, `onOpen`, `onConnection`, `onConnectionDeleted`,
   `onSuccess`, `onExit` and `onClose`, and the fields of their payloads:
   `connectionId`, `connectionIds` and `reason`.
+
 - The behavior this README documents and you can observe: one launch at a
   time, which callbacks arrive on which of the three modes, and that
   `onSuccess` and `onExit` never both arrive for one launch.
+
 - For a page that reads the flow's completion messages directly, without this
   package: in a message whose `version` is `1`, the `source` marker
   `catena-connect`, the six event names `open`, `connection`,
   `connection_deleted`, `success`, `exit` and `close`, and the field names that sit beside `event`:
   `connectionId`, `connectionIds` and `reason`.
+
 - For a page that launches the flow from a URL it builds itself: the launch
   URL parameter names `embed`, `embed_key`, `variant`, `theme`, `brand_color`,
   `brand_secondary`, `brand_logo` and `brand_logo_dark`, and the three `embed` values `iframe`,
@@ -1061,22 +1080,27 @@ you call or what you receive.
 
 - The `0.0.x` releases. They were a typed skeleton with no runtime behavior,
   and their one export, `PACKAGE_NAME`, is not part of the API.
+
 - The `@catenaclearing/connect-sdk/contract` entry point. It exists so the
   Catena app's own tests can check that what the app sends matches what this
   package reads. You should not need to import it, and it can change in a
   minor release.
+
 - The appearance and content of the flow inside the surface. That is the
   Catena app, and it changes on its own schedule.
-- Which of the three modes a given browser ends up in. The decision is made by
-  measurement, and browsers change.
+
+- Which of the three modes a given browser ends up in. The package tests each
+  browser, and browser behavior changes over time.
+
 - The file layout under `dist`, the `sessionStorage` keys the redirect mode
   writes, and anything else you could only reach by inspecting internals.
+
 - Query parameters already on your invite URL. The package writes its own
   (the embed key, the mode, its own version, and the presentation options you
   pass), replacing
-  any of those already present, and leaves the rest as they are. What the app
-  does with the rest is the app's to document. An option this package does
-  not know is not forwarded, so a new app parameter arrives as a new option
+  any of those already present, and leaves the rest as they are. What the
+  app does with the rest is outside this policy. An option this package does not know
+  is not forwarded, so a new app parameter arrives as a new option
   in a minor release.
 
 ### What counts as breaking
@@ -1084,11 +1108,15 @@ you call or what you receive.
 Any of these is a major release:
 
 - Removing or renaming a covered export, option, callback or payload field.
+
 - Narrowing an input that was accepted, such as rejecting a `container` that
   used to work.
+
 - Changing a covered documented behavior, such as letting two launches run at
   once or delivering `onOpen` on the redirect path.
+
 - A type change that makes consumer code that compiled before fail to compile.
+
 - For the message contract: changing the `source` marker, an existing event
   name, or the name or position of an existing field, or renaming a launch
   URL parameter or one of the three `embed` values.
