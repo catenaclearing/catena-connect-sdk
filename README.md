@@ -15,8 +15,8 @@ through six typed callbacks. It checks whether the browser will run the flow
 in an iframe, and if not falls back to a popup window, then to a redirect in
 the current tab. The iframe and popup paths deliver every callback. The
 redirect path navigates away from the page holding your callbacks, so its
-outcome comes back through `resume()` on the page the flow returns to. No
-runtime dependencies. The surface it renders is inside a shadow root.
+outcome comes back through `resume()` on the page the flow returns to. It has
+no runtime dependencies and renders its surface inside a shadow root.
 
 The [package README](packages/connect-sdk/README.md) covers the options, the
 events, the three modes, `resume()`, and the cases where no callback arrives.
@@ -47,10 +47,10 @@ in that order.
 ### Browser tests
 
 jsdom loads no frames and has no network, so the iframe check's timing is
-tested in real browsers as well. `e2e/servers.mjs` serves a partner page on
+tested in real browsers as well. `e2e/servers.mjs` serves a stand-in launching page on
 `https://localhost:4601` and a stand-in for the connect origin on
 `https://127.0.0.1:4602`, two different sites, so the check runs as a real
-cross-site frame. The embed key carries the scenario: `doc=4000;set=300` holds
+cross-site frame. The embed key sets the scenario: `doc=4000;set=300` holds
 the check page for four seconds and its cookie request for 300ms.
 
 ```sh
@@ -60,7 +60,7 @@ pnpm test:e2e
 ```
 
 `SDK_DIST=/path/to/dist pnpm test:e2e` runs the same scenarios against another
-build, such as an earlier release. CI runs them in a job of their own.
+build, such as an earlier release. CI runs them in a separate job.
 
 ### Publication check
 
@@ -78,7 +78,7 @@ Every user-facing change lands with a changeset (`pnpm changeset`). On merge to
 "Version Packages" PR. Merging that PR publishes the bumped packages. If a
 merge to `main` starts no workflow at all, GitHub has dropped the push event:
 run `release.yml` by hand from the Actions tab ("Run workflow" on `main`),
-which does exactly what the push would have. The
+which does the same thing the push would have. The
 versioning, deprecation and support policy those releases follow is the
 [Versioning and support](packages/connect-sdk/README.md#versioning-and-support)
 section of the package README.
@@ -89,9 +89,9 @@ How publishing is locked down:
   `release.yml`. There is no npm token in this repository, in a GitHub secret,
   or on anyone's machine. The npm org requires 2FA and disallows legacy tokens,
   and [`@catenaclearing/connect-sdk`](https://www.npmjs.com/package/@catenaclearing/connect-sdk)
-  is set to "require 2FA and disallow tokens". That setting is what makes the guarantee hold: the package cannot be
-  published by any token-based path, so `release.yml` is the only way it
-  reaches npm.
+  is set to "require 2FA and disallow tokens". Because of that setting, no
+  token-based path can publish the package, so `release.yml` is the only way
+  it reaches npm.
 - **The exceptions are one-shot.** The placeholder packages described
   below are published manually and rarely by
   [`publish-stubs.yml`](.github/workflows/publish-stubs.yml), using a
@@ -100,7 +100,7 @@ How publishing is locked down:
   `bootstrap-package.yml` ("Adding a package" below). Neither path can
   publish
   [`@catenaclearing/connect-sdk`](https://www.npmjs.com/package/@catenaclearing/connect-sdk).
-- **The OIDC identity is three things.** The trusted publisher is bound to the
+- **The OIDC identity has three parts.** The trusted publisher is bound to the
   repository, the `release.yml` workflow filename, and the `npm-bootstrap`
   deployment environment. Renaming the workflow or removing its `environment:`
   line breaks publishing.
@@ -109,7 +109,7 @@ How publishing is locked down:
   workflow run that built it. The package page on npm shows it, and
   `npm audit signatures` checks it after an install. npm only accepts the
   attestation when the `repository` field in the package's `package.json`
-  names this repository exactly, so that field is load-bearing.
+  names this repository exactly, so that field has to stay correct.
 
 **Adding a package.** npm attaches a trusted publisher to a package that
 already exists, so a new package's name has to be published once before
@@ -124,7 +124,7 @@ to the new package, the package is set to "require 2FA and disallow tokens",
 and the token is revoked and the secret deleted. A small PR then removes
 `private`, sets the version to the bootstrapped one and adds the `major`
 changeset for the first release, and from there `release.yml` publishes the
-package exactly like the core.
+package the same way as the core.
 
 ## Typosquat defenses
 
@@ -139,11 +139,11 @@ package exactly like the core.
   npm registry for new packages matching "catena", and opens or updates a
   GitHub issue for anything not in
   [`scripts/squat-allowlist.json`](scripts/squat-allowlist.json). The
-  unrelated `@catena` org (`@catena/sdk`, `@catena/cli`) and the `@catena-x`
-  ecosystem already exist and are allowlisted. They are not ours.
+  `@catena` org (`@catena/sdk`, `@catena/cli`) and the `@catena-x` ecosystem
+  already exist, are unrelated to Catena Clearing, and are allowlisted.
 
 ## License
 
 [MIT](LICENSE). The published packages run in other people's browsers, so
-treat everything in `packages/` as public even while this repository is
-private.
+treat everything in `packages/` as code that third parties read, bundle and
+inspect.
