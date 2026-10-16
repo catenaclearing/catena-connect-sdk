@@ -172,7 +172,9 @@ section says why.
 
 **`container` is a ref**, read when `open()` is called, so it can point at
 an element rendered by the same component. Omit it and the flow renders in
-the core's overlay.
+the core's overlay. Pass it and `open()` throws if the ref is not attached
+to an element yet, rather than fall back to the overlay: an element rendered
+on a condition you set in the same handler has not rendered at that point.
 
 **`preload`** resolves the mode decision while the component is mounted, so
 the first launch starts loading the flow without waiting on that check.
@@ -254,6 +256,13 @@ It renders one `div` and launches the flow into it on mount. **Size that
 element**, through `className` or `style`; the flow fills whatever it is
 given. Unmounting tears the launch down and leaves the page as it was.
 
+Because the launch happens in a mount effect, an `inviteUrl` the core
+refuses throws from that effect to your nearest error boundary, and without
+one React unmounts the tree. The core refuses a URL that does not parse, is
+not `http` or `https`, or is `http` on a host other than `localhost`,
+`127.0.0.1` or `[::1]`.
+Render the component once you hold the URL you were issued.
+
 A launch is fixed for its lifetime, as above: changing `inviteUrl`,
 `embedKey` or a presentation prop does not touch the flow on the page.
 **Change `key` to relaunch** with new options. Handler props follow the render,
@@ -279,7 +288,10 @@ nothing has reported it yet, the matching handler runs once, followed by
 `onClose`. Delivery is tied to mount, not to render, so re-renders deliver
 nothing further, and under
 strict mode the outcome is still delivered once: the core consumes the record
-on the first call and the second finds nothing. The handler that runs is the
+on the first call and the second finds nothing. A handler that throws does not
+take your component down: the hook rethrows its exception from a task of its
+own, so it reaches the console and `window.onerror` as a throw from the other
+two modes' handlers does. The handler that runs is the
 one from your most recent render. With no launch in flight the hook does
 nothing, so it can sit in a destination page's component unconditionally.
 
@@ -352,10 +364,16 @@ before the invitation URL arrived. Disable the button, or do not call
 handler that calls `open()`, it has not rendered yet; use `openWith()`
 ([`useCatenaConnect(options)`](#usecatenaconnectoptions)).
 
+**`open()` throws mentioning `container`.** You passed a ref that is not
+attached to an element when `open()` runs, usually because the element is
+rendered on a condition set in the same handler. Render the element
+unconditionally and hide it, or launch from an effect once it has rendered.
+
 **The flow opens an earlier invitation.** The same cause: `open()` ran in the
 handler that set a new `inviteUrl`, so it launched the one from the latest
 render. Pass the new URL to `openWith()`. Every other throw is the core's,
-usually an invitation URL that is not `https`.
+usually an invitation URL that is `http` on a host other than `localhost`,
+`127.0.0.1` or `[::1]`.
 
 ## Versioning and support
 

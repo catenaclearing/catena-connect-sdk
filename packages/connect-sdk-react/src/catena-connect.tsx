@@ -8,7 +8,12 @@
  */
 
 import type { CatenaConnectOptions } from "@catenaclearing/connect-sdk";
-import { type HTMLAttributes, type JSX, useEffect, useRef } from "react";
+import {
+  type HTMLAttributes,
+  type ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 
 import { useCatenaConnect } from "./use-catena-connect";
 
@@ -95,11 +100,18 @@ function split(props: CatenaConnectProps): [OptionProps, ElementProps] {
  * Change `key` to relaunch with new options. Handlers follow the render, so a
  * new `onSuccess` is the one that runs at the next delivery.
  *
+ * The launch runs in a mount effect, so an `inviteUrl` the core refuses (one
+ * that does not parse, is not `http` or `https`, or is `http` on a host other
+ * than `localhost`, `127.0.0.1` or `[::1]`) throws from there to the nearest
+ * error boundary. That is a programming error, as it is from the hook's
+ * `open()`; render the component only once the URL is the one you were
+ * issued.
+ *
  * Unmounting tears the launch down and leaves the page as it was. Under
  * React's strict mode in development the first launch is torn down and a
  * second one started; one surface is visible either way.
  */
-export function CatenaConnect(props: CatenaConnectProps): JSX.Element {
+export function CatenaConnect(props: CatenaConnectProps): ReactElement {
   const [options, attributes] = split(props);
   const container = useRef<HTMLDivElement>(null);
 

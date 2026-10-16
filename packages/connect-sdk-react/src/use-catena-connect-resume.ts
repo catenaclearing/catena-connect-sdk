@@ -45,8 +45,10 @@ export type UseCatenaConnectResumeOptions = ResumeOptions;
  * Delivery is tied to mount, not to render, so re-renders deliver nothing
  * further. Under React's strict mode in development, which mounts twice, the
  * outcome is still delivered once: the core consumes the record on the first
- * call and the second finds nothing. The flow's own documentation covers what
- * the record can and cannot carry across the navigation.
+ * call and the second finds nothing. A handler that throws does not take the
+ * component down: its exception is rethrown from a task of its own, where it
+ * reaches the console and `window.onerror`. The flow's own documentation
+ * covers what the record can and cannot carry across the navigation.
  */
 export function useCatenaConnectResume(
   options: UseCatenaConnectResumeOptions
@@ -62,7 +64,19 @@ export function useCatenaConnectResume(
   // `latest` is a ref and never changes, so this runs on mount only. The
   // outcome is read from the first render: a page cannot change which
   // destination it is after it has loaded.
+  //
+  // A throwing handler is rethrown from its own task rather than from the
+  // effect. Thrown here, it would reach the nearest error boundary, or
+  // unmount the whole tree without one; on the other two modes the same
+  // handler runs from a message event, where its exception takes only itself
+  // down. Rethrown, it still reaches the console and `window.onerror`.
   useEffect(() => {
-    resume({ outcome: latest.current.outcome, ...forwarders.current });
+    try {
+      resume({ outcome: latest.current.outcome, ...forwarders.current });
+    } catch (error) {
+      setTimeout(() => {
+        throw error;
+      });
+    }
   }, [latest]);
 }

@@ -61,6 +61,20 @@ function InlineLauncher({
 }
 
 /**
+ * The hook given a container ref that nothing renders: the element an
+ * application shows on a condition it has set but that has not rendered yet.
+ */
+function DetachedLauncher({
+  report,
+}: {
+  report?: (result: UseCatenaConnectResult) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  report?.(useCatenaConnect({ inviteUrl, embedKey, container: ref }));
+  return null;
+}
+
+/**
  * The fetch-on-click pattern: the invitation is fetched when the button is
  * pressed, stored in state, and launched in the same handler, before the
  * state has rendered. `launch` is the call under test.
@@ -362,6 +376,14 @@ describe("useCatenaConnect", () => {
 
     expect(() => seen[0].open()).toThrow(Error);
     expect(() => seen[0].open()).toThrow(/inviteUrl/);
+    expect(surfacesIn(document.body)).toHaveLength(0);
+  });
+
+  it("throws from open() when the container ref is not attached", () => {
+    const seen: UseCatenaConnectResult[] = [];
+    render(<DetachedLauncher report={(r) => seen.push(r)} />);
+
+    expect(() => seen[0].open()).toThrow(/container/);
     expect(surfacesIn(document.body)).toHaveLength(0);
   });
 
