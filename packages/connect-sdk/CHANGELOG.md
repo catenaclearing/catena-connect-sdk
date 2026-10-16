@@ -1,5 +1,24 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.9
+
+### Minor Changes
+
+- b8be5e4: The overlay now has a close button, and Escape closes it while focus is on the overlay's own controls. Either one calls `onClose`, the same as a user closing the popup window, so a flow that never says it is done no longer leaves the user stuck behind the overlay. The flow comes off the overlay at once, and nothing it sends afterwards is delivered, but the overlay stays until you call `destroy()` from `onClose`, as the quick start does. An inline `container` gets no close button.
+- 9a561ba: `resume()` now passes `onExit` a reason read from the failure URL: its `skip_reason` when there is one, otherwise its `status`, such as `integration-requested`. The other two modes already report the same exit with that reason. Before, `resume()` always passed an empty string. It still does when the URL carries neither parameter.
+- 8eee43b: The package's own surface now follows `theme`: the loading state, the Continue button and the overlay's close button are dark under `"dark"`, and follow the device's preference when no theme is set. Before, they were always white.
+
+### Patch Changes
+
+- 8eee43b: The flow's iframe no longer carries `allow="clipboard-write"`. The flow never uses the clipboard, so the grant gave a cross-origin frame a permission it had no use for.
+- 395920c: When the page that called `open()` is inside a frame and the browser blocks the popup, the surface now asks the user to allow pop-ups and press Continue again. Before, it fell back to the redirect mode, which in a frame navigates only the frame and loads the flow somewhere it cannot run.
+- cedb813: Warn in the console when the popup window reports itself closed within moments of opening. That is what a launching page served with `Cross-Origin-Opener-Policy: same-origin` does to it, and until now it looked like the user closing the window. The warning names the header and the fix, `same-origin-allow-popups`; `onClose` is still delivered as before. The README now lists the requirement under "What you need".
+- 5358899: An iframe that loads but never reports it is ready now falls back to the popup, eight seconds after its page loads, instead of being shown. The usual cause is a browser refusing to render the flow in an iframe, which used to leave the user looking at the browser's error page with no callback to your page.
+- 5cecd4b: `preload()` no longer throws during a server render. Outside a browser it now does nothing, so it is safe to call from code that also runs on the server, such as a Next.js or Remix component.
+- 974c1dc: Deliver the flow's callbacks from a frame whose container was attached after `open()`, or moved by a portal after the flow mounted. The frame's window is now read on each message rather than taken once at mount; before, both cases left every callback silently dropped while the flow itself ran on.
+- 395920c: Calling `open()` again while the popup window is open now brings that window forward. Before, it focused the overlay behind it, or did nothing in a `container`, though the flow was in the window.
+- 395920c: A relaunch now goes ahead when the finished launch's `onClose` throws. Before, the exception escaped `open()`, the old surface stayed up and the user had to click twice. The error is still reported, from its own task, the way an error from any other callback is.
+
 ## 1.0.0-beta.8
 
 ### Minor Changes

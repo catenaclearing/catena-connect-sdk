@@ -1,5 +1,26 @@
 # @catenaclearing/connect-sdk-react
 
+## 1.0.0-beta.4
+
+### Minor Changes
+
+- 1b6f51f: `useCatenaConnect()` now also returns `openWith(options)`, which launches with the options you pass in place of the latest render's. Use it when you fetch the invitation on click: `open()` reads the latest render, so `setInviteUrl(url); open();` in one handler launched the previous invitation, or threw if there was none. `open()` itself is unchanged and still takes no argument, so `onClick={open}` keeps working.
+
+### Patch Changes
+
+- Updated dependencies [8eee43b]
+- Updated dependencies [395920c]
+- Updated dependencies [b8be5e4]
+- Updated dependencies [cedb813]
+- Updated dependencies [5358899]
+- Updated dependencies [5cecd4b]
+- Updated dependencies [974c1dc]
+- Updated dependencies [395920c]
+- Updated dependencies [9a561ba]
+- Updated dependencies [8eee43b]
+- Updated dependencies [395920c]
+  - @catenaclearing/connect-sdk@1.0.0-beta.9
+
 ## 1.0.0-beta.3
 
 ### Minor Changes
