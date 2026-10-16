@@ -396,7 +396,7 @@ from any other callback is.
 ## Events
 
 All six callbacks are optional. If you supply none, the flow still works and
-you learn the outcome from your webhooks.
+your webhooks still record what was connected.
 
 | Callback | Meaning | Payload |
 | --- | --- | --- |
