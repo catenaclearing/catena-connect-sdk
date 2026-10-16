@@ -651,9 +651,10 @@ yourself.
 popup mode, the browser cuts your page off from the window as soon as it loads
 the flow. From your page the window looks closed, so you get `onClose` with
 no outcome shortly after the click, while the user carries on in a
-window your page cannot hear or close. The flow then finishes by sending
-that window to your redirect URL. The package logs a console warning when a
-window closes this fast. Serve the page with `same-origin-allow-popups`
+window your page cannot hear or close. If your invitation has redirect URLs,
+the flow then finishes by sending that window to one of them. Without them it
+stays on its last screen. The package logs a console warning when a window
+closes this fast. Serve the page with `same-origin-allow-popups`
 instead, which keeps the popup connected and changes nothing else.
 
 **Redirect mode with no `resume()` call.** The flow completed in your tab
