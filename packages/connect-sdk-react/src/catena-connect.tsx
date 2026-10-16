@@ -101,7 +101,8 @@ function split(props: CatenaConnectProps): [OptionProps, ElementProps] {
  * new `onSuccess` is the one that runs at the next delivery.
  *
  * The launch runs in a mount effect, so an `inviteUrl` the core refuses (one
- * that does not parse, or is not `https`) throws from there to the nearest
+ * that does not parse, is not `http` or `https`, or is `http` on a host other
+ * than `localhost`, `127.0.0.1` or `[::1]`) throws from there to the nearest
  * error boundary. That is a programming error, as it is from the hook's
  * `open()`; render the component only once the URL is the one you were
  * issued.

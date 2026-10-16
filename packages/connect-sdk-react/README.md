@@ -257,8 +257,10 @@ element**, through `className` or `style`; the flow fills whatever it is
 given. Unmounting tears the launch down and leaves the page as it was.
 
 Because the launch happens in a mount effect, an `inviteUrl` the core
-refuses, one that does not parse or is not `https`, throws from that effect
-to your nearest error boundary, and without one React unmounts the tree.
+refuses throws from that effect to your nearest error boundary, and without
+one React unmounts the tree. The core refuses a URL that does not parse, is
+not `http` or `https`, or is `http` on a host other than `localhost`,
+`127.0.0.1` or `[::1]`.
 Render the component once you hold the URL you were issued.
 
 A launch is fixed for its lifetime, as above: changing `inviteUrl`,
@@ -370,7 +372,8 @@ unconditionally and hide it, or launch from an effect once it has rendered.
 **The flow opens an earlier invitation.** The same cause: `open()` ran in the
 handler that set a new `inviteUrl`, so it launched the one from the latest
 render. Pass the new URL to `openWith()`. Every other throw is the core's,
-usually an invitation URL that is not `https`.
+usually an invitation URL that is `http` on a host other than `localhost`,
+`127.0.0.1` or `[::1]`.
 
 ## Versioning and support
 
