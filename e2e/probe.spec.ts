@@ -19,7 +19,7 @@ function key(scenario: string): string {
   return `${scenario};run=${crypto.randomUUID()}`;
 }
 
-async function partnerPage(page: Page): Promise<void> {
+async function hostPage(page: Page): Promise<void> {
   await page.goto("/");
   await page.waitForFunction(() => (window as { ready?: boolean }).ready);
 }
@@ -75,7 +75,7 @@ async function events(page: Page): Promise<string[]> {
 
 test.describe("a fast network", () => {
   test("frames the flow straight away", FRAMED, async ({ page }) => {
-    await partnerPage(page);
+    await hostPage(page);
     const outcome = await launch(page, key("fast"));
 
     expect(outcome.mode).toBe("frame");
@@ -86,7 +86,7 @@ test.describe("a fast network", () => {
   test("offers the window promptly when the cookie is refused", async ({
     page,
   }) => {
-    await partnerPage(page);
+    await hostPage(page);
     const outcome = await launch(page, key("cookie=refused"));
 
     expect(outcome.mode).toBe("continue");
@@ -96,7 +96,7 @@ test.describe("a fast network", () => {
   test("opens the window under a name of its own", async ({ page }) => {
     // A fixed name made `window.open` look for an existing window first,
     // which Chrome refuses to navigate when this page did not open it.
-    await partnerPage(page);
+    await hostPage(page);
     await launch(page, key("cookie=refused"));
 
     const [popup] = await Promise.all([
@@ -116,7 +116,7 @@ test.describe("a slow network", () => {
     async ({ page }) => {
       // A cold connection through a TLS-inspecting proxy. Before the load
       // budget, anything over 2.5 seconds here was sent to the window.
-      await partnerPage(page);
+      await hostPage(page);
       const outcome = await launch(page, key("doc=4000"));
 
       expect(outcome.mode).toBe("frame");
@@ -128,7 +128,7 @@ test.describe("a slow network", () => {
     "frames on the first launch when only the first contact is slow",
     FRAMED,
     async ({ page }) => {
-      await partnerPage(page);
+      await hostPage(page);
       const outcome = await launch(page, key("docOnce=3000"));
 
       expect(outcome.mode).toBe("frame");
@@ -136,7 +136,7 @@ test.describe("a slow network", () => {
   );
 
   test("waits for a slow cookie round trip", FRAMED, async ({ page }) => {
-    await partnerPage(page);
+    await hostPage(page);
     const outcome = await launch(page, key("set=500;check=500"));
 
     expect(outcome.mode).toBe("frame");
@@ -146,7 +146,7 @@ test.describe("a slow network", () => {
     "moves the wait off the click when the page preloads",
     FRAMED,
     async ({ page }) => {
-      await partnerPage(page);
+      await hostPage(page);
       const embedKey = key("doc=3000");
       await page.evaluate((k) => {
         (
@@ -171,7 +171,7 @@ test.describe("a network that is slow on every request", () => {
       // Chrome's Slow 3G profile adds about two seconds to every request,
       // as a heavy TLS-inspecting proxy can. The page, `set` and `check`
       // each pay it, so the round trip after `load` alone takes four.
-      await partnerPage(page);
+      await hostPage(page);
       const outcome = await launch(page, key("doc=2000;set=2000;check=2000"));
 
       expect(outcome.mode).toBe("frame");
@@ -185,7 +185,7 @@ test.describe("a network that is slow on every request", () => {
       // A `set` that outlasts the page's own budget is slowness, not a
       // refused cookie. The page stays silent rather than posting `false`,
       // so the SDK times out, remembers nothing, and the next launch frames.
-      await partnerPage(page);
+      await hostPage(page);
       const embedKey = key("setOnce=hang");
 
       expect((await launch(page, embedKey)).mode).toBe("continue");
@@ -206,7 +206,7 @@ test.describe("a probe that never answers", () => {
   }) => {
     // What an origin the embed key does not cover looks like: the frame
     // loads and nothing reports.
-    await partnerPage(page);
+    await hostPage(page);
     const outcome = await launch(page, key("silent"));
 
     expect(outcome.mode).toBe("continue");
@@ -217,7 +217,7 @@ test.describe("a probe that never answers", () => {
   test("gives up on a page that never arrives after about eight seconds", async ({
     page,
   }) => {
-    await partnerPage(page);
+    await hostPage(page);
     const outcome = await launch(page, key("doc=hang"));
 
     expect(outcome.mode).toBe("continue");
@@ -228,7 +228,7 @@ test.describe("a probe that never answers", () => {
     "checks again on the next launch instead of remembering the timeout",
     FRAMED,
     async ({ page }) => {
-      await partnerPage(page);
+      await hostPage(page);
       const embedKey = key("docOnce=hang");
 
       expect((await launch(page, embedKey)).mode).toBe("continue");
@@ -250,7 +250,7 @@ test.describe("a flow that refuses its frame", () => {
     async ({ page }) => {
       // The probe says yes, then the flow's own page refuses to be framed.
       // The browser still fires `load` for its error page, and nothing posts.
-      await partnerPage(page);
+      await hostPage(page);
       const outcome = await launch(page, key("flow=refused"));
 
       expect(outcome.mode).toBe("continue");
@@ -270,7 +270,7 @@ test.describe("a browser that refuses the cookie", () => {
   test("offers the window on a fast network", async ({ page, browserName }) => {
     // The other half of the skip above: where the browser will not carry the
     // cookie, a fast network still ends at the window, and promptly.
-    await partnerPage(page);
+    await hostPage(page);
     test.skip(
       !(await refusesPartitionedCookies(page, browserName)),
       "This browser carries the cookie; the frame tests cover it"

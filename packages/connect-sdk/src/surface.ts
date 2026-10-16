@@ -13,7 +13,7 @@
  * the outer tree wins, so `:host { display: block }` loses to a host page's
  * `div { display: none }` and the surface disappears. Importance reverses that
  * order, so the few declarations we cannot survive losing are marked
- * `!important` — and only those.
+ * `!important`, and nothing else is.
  */
 
 const STYLES = `
@@ -286,12 +286,12 @@ const LOADING_MESSAGE = "Loading…";
 /**
  * What the user is told before a window opens.
  *
- * It describes what the next click does and claims nothing about why. An
+ * It says what the next click does and makes no claim about why. An
  * unsupported verdict is not a finding about the browser: the probe fails
  * closed, so a failed request or an exhausted budget land here too, on a
  * browser that would have carried the frame fine. Saying "your browser cannot
- * do this" would often be untrue. What is true on every path is that a window
- * is about to open and they are the one opening it.
+ * do this" would often be untrue. In every case, though, a window is about to
+ * open and the user is the one opening it.
  */
 const CONTINUE_MESSAGE = "Continue in a new window to finish connecting.";
 const CONTINUE_LABEL = "Continue";
@@ -349,7 +349,7 @@ export interface SurfaceOptions {
    * has them: it covers the page and takes it out of the tab order, so
    * without a way out of its own a flow that never says it is done leaves the
    * user nowhere to go but a reload. A caller's container sits in a page they
-   * still control, and dismissing it is theirs to offer.
+   * still control, so offering a way to dismiss it is up to them.
    */
   onDismiss?: () => void;
   /**
@@ -395,8 +395,8 @@ export function createSurface(
 
   if (overlay) {
     // Only our own overlay claims to be a modal. A caller's container sits
-    // in a layout they built and may not be modal at all; announcing it as
-    // one, or pulling focus, would be overruling them about their own page.
+    // in a layout they built and may not be modal at all, so we do not
+    // announce it as one or pull focus into it.
     root.setAttribute("role", "dialog");
     root.setAttribute("aria-modal", "true");
     root.setAttribute("aria-label", "Catena Connect");
@@ -422,8 +422,9 @@ export function createSurface(
   // After the panel, so the close button is the last stop in the overlay's tab
   // order rather than the first: the flow is what the user came for.
   //
-  // Asked for, not done: the surface comes down when the caller tears it down
-  // from the `onClose` this produces, the same as for every other dismissal.
+  // These only request a dismissal. The surface comes down when the caller
+  // tears it down from the resulting `onClose`, the same as for every other
+  // dismissal.
   if (overlay && onDismiss !== undefined) {
     const close = doc.createElement("button");
     close.type = "button";
@@ -454,7 +455,7 @@ export function createSurface(
   // resolves against `auto`, the chain collapses to `min-height`, and an
   // inline mount ignores the space the caller reserved: 480px tall in a
   // container they gave 800. The sizing itself is a `:host([data-inline])`
-  // rule in the stylesheet above — not an inline style here, which this
+  // rule in the stylesheet above, not an inline style here, which this
   // stylesheet's own `all: initial !important` would beat, since important
   // declarations from the inner tree outrank the outer's. This attribute is
   // what that rule keys on.
@@ -469,8 +470,8 @@ export function createSurface(
 
   // `aria-modal` tells a screen reader the rest of the page is not there.
   // Nothing made that true for the keyboard, so Tab still walked out of the
-  // overlay and into controls the user could no longer see — the
-  // announcement and the behavior disagreeing.
+  // overlay and into controls the user could no longer see, so the
+  // announcement and the behavior disagreed.
   //
   // `inert` rather than a focus trap, because the flow is a cross-origin
   // frame: its focusable elements cannot be enumerated from here, so there is
@@ -486,14 +487,14 @@ export function createSurface(
   let watcher: MutationObserver | null = null;
 
   const inertEverythingElse = (): void => {
-    // The surface can leave the document without us — a caller unmounting
-    // the component around it, or replacing the page wholesale. Nothing of
+    // The surface can leave the document without us, when a caller unmounts
+    // the component around it or replaces the page wholesale. Nothing of
     // ours is up any more, so there is nothing to keep out of the tab order
     // and no reason to go on touching their page. `destroy()` is the
-    // supported way down; this is the one that does not involve us, and it
-    // has to give the page back the same way: a caller who removed only our
-    // host would otherwise keep every sibling we marked inert, with no
-    // overlay on screen to explain why the keyboard reaches nothing.
+    // supported teardown, but this path has to restore the page the same
+    // way. Otherwise a caller who removed only our host would keep every
+    // sibling we marked inert, with no overlay on screen to explain why the
+    // keyboard reaches nothing.
     if (!host.isConnected) {
       watcher?.disconnect();
       for (const element of inerted) {
@@ -512,10 +513,10 @@ export function createSurface(
     }
   };
 
-  // The page behind a modal does not hold still. A caller's toast, a route
-  // change, their own portal: anything appended while we are up arrives
-  // focusable and outside the set taken out of the tab order, which is the
-  // same disagreement between the announcement and the behavior, reopened by
+  // The page behind a modal keeps changing. Anything appended while we are
+  // up, such as a caller's toast, a route change or their own portal, arrives
+  // focusable and outside the set taken out of the tab order. That brings
+  // back the same mismatch between the announcement and the behavior on
   // their next render.
   //
   // `childList` on `body` only. Anything deeper is already inside a subtree
@@ -628,8 +629,8 @@ export function createSurface(
         element.inert = false;
       }
 
-      // The host element is ours. The container, when there is one, is the
-      // caller's and is left exactly as we found it.
+      // Remove only our host element. A caller's container, when there is
+      // one, is left as we found it.
       host.remove();
       if (isFocusable(previouslyFocused)) {
         previouslyFocused.focus({ preventScroll: true });
@@ -657,13 +658,13 @@ function crossIcon(doc: Document): SVGSVGElement {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 /**
- * What actually has focus, rather than what the document admits to.
+ * The element that actually has focus, looking inside open shadow roots.
  *
  * `document.activeElement` stops at a shadow host, so a launch button inside
  * a caller's own component reports the component instead of the button.
  * Restoring focus there would land the user somewhere they never were, so we
- * follow each open root down to the real control. A closed root ends the
- * descent, which is the point of closing it.
+ * follow each open root down to the real control. We stop at a closed root,
+ * since closing it is meant to hide what is inside.
  */
 function activeElement(): Element | null {
   let active = document.activeElement;
@@ -680,7 +681,7 @@ function activeElement(): Element | null {
  * can hold focus and has `focus()` but is not an `HTMLElement`, and an icon
  * button drawn as SVG is an ordinary thing to launch from.
  *
- * It may also have been removed in the meantime — a host SPA re-rendering
+ * It may also have been removed in the meantime. A host SPA re-rendering
  * behind the overlay is the usual way that happens.
  */
 function isFocusable(element: Element | null): element is Element & {
@@ -698,9 +699,9 @@ function isFocusable(element: Element | null): element is Element & {
  *
  * A constructable stylesheet is CSSOM rather than an inline `<style>`, so
  * `style-src` does not gate it. A caller strict enough to omit
- * `unsafe-inline` would otherwise get an unstyled overlay — including losing
- * the `!important` host declarations that stop their page hiding it, so the
- * isolation would fail exactly where it is needed most.
+ * `unsafe-inline` would otherwise get an unstyled overlay. That includes
+ * losing the `!important` host declarations that stop their page hiding it,
+ * so a strict policy would break the isolation too.
  *
  * The `<style>` fallback is for browsers without constructable sheets, which
  * are older than anything frame mode supports anyway.

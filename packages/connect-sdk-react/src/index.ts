@@ -8,10 +8,10 @@
  *
  * The core's types a consumer of these hooks can meet are re-exported, so
  * imports come from one package. The core's `open`, `resume` and `preload`,
- * and with them `CatenaConnectHandle` and `PreloadOptions`, are deliberately
- * not: the hooks are their React form, the handle never leaves the hook, and
- * a second way in would invite the handle-in-a-ref pattern this package
- * exists to remove.
+ * and with them `CatenaConnectHandle` and `PreloadOptions`, are not. The
+ * hooks are their React form, the handle never leaves the hook, and offering
+ * the core's functions as well would invite keeping the handle in a ref,
+ * which this package is meant to replace.
  */
 
 export type {

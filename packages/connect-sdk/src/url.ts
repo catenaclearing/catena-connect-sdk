@@ -45,12 +45,12 @@ type LaunchParams = Pick<
 export function connectOrigin(inviteUrl: string): string {
   const url = new URL(inviteUrl);
 
-  // An allowlist, because the bad answer here is neither rare nor obvious:
-  // `URL` parses about:, data:, javascript: and file: happily and serializes
-  // all of their origins to the *string* "null". Nothing throws, and we would
-  // carry "null" as the origin we trust. Then the probe has no origin to be
-  // built against, the launch URL is unservable, and the origin guard stops
-  // discriminating because every opaque context serializes the same way.
+  // An allowlist, because the failure here is common and easy to miss. `URL`
+  // parses about:, data:, javascript: and file: without complaint and
+  // serializes all of their origins to the *string* "null". Nothing throws, and
+  // we would carry "null" as the origin we trust. Then the probe has no origin
+  // to be built against, the launch URL is unservable, and the origin guard
+  // stops discriminating because every opaque context serializes the same way.
   //
   // blob: is excluded by the same rule. Its origin looks real, but the URL
   // cannot carry the launch parameters.
@@ -64,9 +64,9 @@ export function connectOrigin(inviteUrl: string): string {
   // Everything this origin is used for assumes nobody else can be it: the
   // frame we mount, the window we open, and the guard that decides an inbound
   // message is the flow reporting rather than a page pretending to. Over plain
-  // http on a network someone else is on, all three are theirs for the taking
-  // — they can serve the flow, post a success that was never earned, and read
-  // the embed key out of the URL on the way past.
+  // http, anyone else on the network can take over all three: they can serve
+  // the flow, post a success that was never earned, and read the embed key
+  // out of the URL.
   //
   // Loopback is the exception because it has no network to be on, and it is
   // the one address a caller needs while building against a local app.
@@ -88,7 +88,7 @@ export function connectOrigin(inviteUrl: string): string {
  * carries survives. Values are forwarded exactly as supplied.
  *
  * The mode is not among them. It is not known until the probe has answered, so
- * `withEmbedMode` names it on the way into whichever rung the ladder picked.
+ * `withEmbedMode` names it on the way into whichever mode was picked.
  */
 export function buildLaunchUrl(options: LaunchParams): string {
   const url = new URL(options.inviteUrl);

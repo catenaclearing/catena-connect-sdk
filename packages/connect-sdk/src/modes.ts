@@ -1,9 +1,9 @@
 /**
  * Where a resolved verdict becomes a running flow.
  *
- * Frame mode is the path nearly every user takes. The popup is the net below
- * it, for browsers that cannot carry a partitioned cookie, and the redirect is
- * the floor below that.
+ * Frame mode is the path nearly every user takes. Popup mode is the fallback
+ * for browsers that cannot carry a partitioned cookie, and redirect mode is
+ * the fallback when the popup is refused too.
  */
 
 import { writePending } from "./pending";
@@ -44,15 +44,15 @@ export function mountFrame(
   frame.title = "Catena Connect";
   frame.src = launchUrl;
 
-  // Deliberately not sandboxed. Provider consent pages cannot be framed, so
+  // Not sandboxed. Provider consent pages cannot be framed, so
   // the flow opens a window of its own for that step; a `sandbox` without
   // `allow-popups` silently prevents it, and one carrying every token needed
-  // to keep it working re-grants everything it removed. There is no security
-  // to give up here either — the framed origin is ours, and the app already
+  // to keep it working re-grants everything it removed. Sandboxing would add
+  // no security here either: the framed origin is ours, and the app already
   // constrains who may frame it.
   //
-  // No `allow` either. Every feature a cross-origin frame is denied by
-  // default would have to earn its place there, and the flow uses none.
+  // No `allow` either. It would only list features a cross-origin frame is
+  // denied by default, and the flow uses none of them.
   surface.mount.append(frame);
   surface.hold();
   return frame;
@@ -77,31 +77,31 @@ const WATCHDOG_MS = 500;
  * no fallback.
  */
 export function openPopup(launchUrl: string): Window | null {
-  // Two arguments, deliberately. The third is the features string, and it is
-  // the one place `noopener` can get in. There is nothing else a features
-  // string would buy: the flow lays itself out at whatever size it is given.
+  // Only two arguments. The third is the features string, which is where
+  // `noopener` would go, and a features string offers nothing else we need:
+  // the flow lays itself out at the size it is given.
   //
-  // `noopener` is not available to us, and the cost is worth stating because
-  // it is not only the completion message. It makes `window.open` return
-  // `null`, so there would also be no window to watch for a close, and no
-  // `source` to check an inbound message against — three of the four things
-  // this mode does, gone, rather than one hardening applied.
+  // We cannot use `noopener`, and it would cost more than the completion
+  // message. It makes `window.open` return `null`, so there would also be no
+  // window to watch for a close, and no `source` to check an inbound message
+  // against. That would lose three of the four things this mode does, in
+  // exchange for one hardening.
   //
-  // What the opener costs is an invariant rather than nothing: a window
-  // holding an opener hands that reference to every document it is
-  // subsequently navigated to, so this window must only ever be navigated
-  // within the connect origin. That is the app's to hold, and the reason a
-  // provider step belongs in a window of its own rather than in this one.
-  // Teardown closes the window, so the reference lives exactly as long as the
-  // launch does.
+  // Keeping the opener does carry a requirement: a window holding an opener
+  // hands that reference to every document it is later navigated to, so this
+  // window must only ever be navigated within the connect origin. The app
+  // enforces that, and it is why a provider step opens in a window of its own
+  // instead of in this one. Teardown closes the window, so the reference lasts
+  // only as long as the launch.
   const popup = window.open(launchUrl, windowName()) ?? null;
   return popup !== null && isClosed(popup) ? null : popup;
 }
 
 /**
  * A name no other window has, so `window.open` always opens a new one rather
- * than finding a window left over from an earlier page. Not secret, only
- * distinct: the time and a random tail are enough to never meet a stale name.
+ * than finding a window left over from an earlier page. It only needs to be
+ * distinct, not secret, and the time plus a random tail never matches a stale
+ * name.
  */
 function windowName(): string {
   return `${WINDOW_NAME}-${Date.now().toString(36)}-${randomTail()}`;
@@ -157,8 +157,8 @@ export const SEVERED_MS = 1500;
  * site: the handle reports `closed`, the window's `opener` is gone, and the
  * flow runs on in it with nothing to post to. From here that is
  * indistinguishable from the user closing the window, except for how soon it
- * happens, and the header is invisible to script, so the console is the only
- * place left to say so. The launch still ends the way a close ends it, because
+ * happens. Script cannot read the header, so a console warning is the only
+ * way to report it. The launch still ends the way a close ends it, because
  * this page will hear nothing more from that window either way.
  */
 export function warnSevered(elapsedMs: number): void {
@@ -173,8 +173,8 @@ export function warnSevered(elapsedMs: number): void {
  * Run the flow in this tab, because the browser refused the window too.
  *
  * The record goes down before the assignment: once the tab is assigned this
- * page gets no more turns, and that record is the only thing making the
- * callback on the far side possible.
+ * page gets no more turns, and without that record `resume()` on the
+ * destination page has nothing to deliver.
  *
  * Nothing is emitted on the way out. A dismissal here would land on a page
  * about to be destroyed, then land again on resume.

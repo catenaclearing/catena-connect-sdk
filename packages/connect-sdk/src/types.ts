@@ -6,23 +6,23 @@
 /**
  * How the flow presents itself.
  *
- * The literal values are an editor aid, not a gate. They autocomplete, and the
- * `string` arm keeps a value the app has newly started accepting compiling
- * against an already-installed version of this package. Removing the widening
- * would make our release cadence a gate on the app's.
+ * The literal values are there for autocomplete. The `string` arm lets a
+ * value the app has newly started accepting compile against an
+ * already-installed version of this package, so using it never has to wait
+ * for a release of ours.
  *
- * Nothing here is validated at runtime either. The app ignores a value it does
+ * Values are not validated at runtime either. The app ignores a value it does
  * not recognize and falls back, so a check here could only turn that fallback
- * into an error, using a list guaranteed to lag the app's.
+ * into an error, and its list would always be behind the app's.
  */
 export type ConnectVariant = "full" | "card" | (string & {});
 
 /**
  * The flow's color scheme. Widened for the reason `ConnectVariant` is.
  *
- * There is no `auto`. The app takes a forced theme or nothing, and omitting
- * this is what leaves its own resolution alone — so a value named `auto`
- * would only be a second spelling of leaving it out.
+ * There is no `auto`. The app takes either a forced theme or nothing, and
+ * leaving this out is how you let it resolve the theme itself, so an `auto`
+ * value would only be another way of leaving it out.
  */
 export type ConnectTheme = "light" | "dark" | (string & {});
 
@@ -30,8 +30,9 @@ export type ConnectTheme = "light" | "dark" | (string & {});
 export type ConnectOpenEvent = Record<string, never>;
 
 /**
- * One provider was connected. Not an ending: the flow is still running, the
- * surface stays up, and `onSuccess` still follows when the user finishes.
+ * One provider was connected. This is not a terminal event: the flow keeps
+ * running, the surface stays up, and `onSuccess` still follows when the user
+ * finishes.
  */
 export interface ConnectConnectionEvent {
   /** The connection just established or restored. */
@@ -39,8 +40,8 @@ export interface ConnectConnectionEvent {
 }
 
 /**
- * The fleet deleted one of its connections. Not an ending, as with
- * `onConnection`: the flow is still running.
+ * The fleet deleted one of its connections. Like `onConnection`, this is not
+ * a terminal event, and the flow keeps running.
  */
 export interface ConnectConnectionDeletedEvent {
   /** The connection just deleted. */
@@ -51,8 +52,8 @@ export interface ConnectConnectionDeletedEvent {
 export interface ConnectSuccessEvent {
   /**
    * The connections this launch established or restored, less any the fleet
-   * deleted before finishing. Empty on a resumed launch: nothing survives a
-   * full-page navigation to carry them.
+   * deleted before finishing. Empty on a resumed launch, because the IDs do
+   * not survive the full-page navigation.
    */
   connectionIds: string[];
 }
@@ -63,8 +64,9 @@ export interface ConnectExitEvent {
    * Why the flow ended, as reported by the app. Forwarded unchanged.
    *
    * On a resumed launch, read from the failure URL the flow returned to: its
-   * `skip_reason` when there is one, otherwise its `status`, which is how the
-   * message channel words the same exit. Empty if the URL carries neither.
+   * `skip_reason` when there is one, otherwise its `status`. This matches what
+   * the message channel reports for the same exit. Empty if the URL carries
+   * neither.
    */
   reason: string;
 }
@@ -102,13 +104,13 @@ export interface CatenaConnectOptions extends ConnectCallbacks {
    * Mount the flow here instead of in our overlay. Behavior is otherwise
    * identical, including on the fallback modes.
    *
-   * `HTMLElement` rather than `Element`: the surface is HTML, and an SVG or
-   * MathML node would accept it into the tree without ever rendering it.
+   * Typed as `HTMLElement` because the surface is HTML. An SVG or MathML
+   * element would accept it into the tree but never render it.
    */
   container?: HTMLElement;
   /**
-   * Which layout the flow renders. `"full"` is the flow as it renders on its
-   * own, header included. `"card"` is the connection card alone, filling its
+   * Which layout the flow renders. `"full"` is the complete flow, including
+   * its header. `"card"` is the connection card alone, filling its
    * mount, with no header. Defaults to `"full"`.
    */
   variant?: ConnectVariant;
@@ -133,9 +135,9 @@ export interface CatenaConnectOptions extends ConnectCallbacks {
   /**
    * The flow's success color as six hex digits, with or without a leading
    * `#`. Replaces the green that marks a connection: the progress indicator
-   * once the user has one, connected providers and success messages. Omit it
-   * and the green stays, whatever `brandColor` is. Honored only when the embed
-   * key resolves.
+   * once the user has one, connected providers and success messages. If it is
+   * omitted, the green stays even when `brandColor` is set. Honored only when
+   * the embed key resolves.
    */
   brandSecondary?: string;
 }
@@ -146,9 +148,9 @@ export type ResumeOutcome = "success" | "exit";
 /** Options for `resume()`. */
 export interface ResumeOptions extends ConnectCallbacks {
   /**
-   * Whether this is your success destination or your failure one. We cannot
-   * work it out: the app signals the outcome by which destination URL it
-   * navigates to, and those URLs live on the invitation.
+   * Whether this is your success destination or your failure one. The package
+   * cannot tell on its own, because the app signals the outcome by which
+   * destination URL it navigates to, and those URLs are set on the invitation.
    */
   outcome: ResumeOutcome;
 }
@@ -158,11 +160,11 @@ export interface PreloadOptions {
   /** The invitation URL, because the origin to probe comes from it. */
   inviteUrl: string;
   /**
-   * The embed key the launch will use. The verdict is held per origin and
-   * key, because the app decides by the key whether this page may frame the
-   * flow, so passing the launch's key warms the exact verdict `open()` reads.
-   * Omit it and the probe runs without a key; an `open()` with a key then
-   * probes again.
+   * The embed key the launch will use. The verdict is cached per origin and
+   * key, because the app uses the key to decide whether this page may frame
+   * the flow. Pass the launch's key so `open()` can reuse the verdict. Omit it
+   * and the probe runs without a key; an `open()` with a key then probes
+   * again.
    */
   embedKey?: string;
 }
@@ -175,10 +177,11 @@ export interface CatenaConnectHandle {
    * has ended, so it is correct to call from a component teardown that may
    * run at any point.
    *
-   * A probe already in flight is not the launch's to stop. It belongs to the
-   * page — `preload()` runs one with no launch at all — it removes its own
-   * frame, listener and timer within its budget, and the verdict it reaches
-   * is kept so the next launch with the same key skips the probe.
+   * It does not stop a probe already in flight, because a probe serves the
+   * whole page rather than one launch (`preload()` runs one with no launch at
+   * all). The probe removes its own frame, listener and timer within its
+   * budget, and its verdict is kept so the next launch with the same key skips
+   * the probe.
    */
   destroy(): void;
 }

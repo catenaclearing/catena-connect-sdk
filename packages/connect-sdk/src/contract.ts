@@ -17,8 +17,8 @@
  * trip and this package waits for it, so the app can check that its cap fits
  * inside what is waited for. That wait starts at the page's `load` event, so
  * the document's own delivery is not part of it; `PROBE_LOAD_BUDGET_MS` is how
- * long that delivery may take. That is the one coupling between the two that
- * no type expresses.
+ * long that delivery may take. This timing is the one dependency between the
+ * two that no type can express.
  *
  * `@catenaclearing/connect-sdk/contract`
  */
@@ -96,11 +96,11 @@ export interface MessageStamp {
 }
 
 /**
- * A completion, exactly as the app posts it.
+ * A completion message as the app posts it.
  *
- * The detail sits beside `event`, not under a key of its own. This is the
- * shape the app's integration document tells a raw `postMessage` consumer to
- * read, which is what froze it. A builder typed as returning this cannot nest
+ * The detail sits beside `event`, not under a key of its own. The app's
+ * integration document tells a raw `postMessage` consumer to read this shape,
+ * so it cannot change. A builder typed as returning this cannot nest
  * the detail without failing to compile.
  */
 export type CompletionMessage =
@@ -115,10 +115,10 @@ export type CompletionMessage =
   | (MessageStamp & { event: typeof EVENT_CLOSE });
 
 /**
- * The probe's verdict, exactly as the probe page posts it.
+ * The probe's verdict as the probe page posts it.
  *
- * The one message that nests. New messages are flat, as a completion is; this
- * is the documented exception rather than the pattern.
+ * The only message that nests, and a documented exception. New messages are
+ * flat, as a completion is.
  */
 export interface ProbeMessage extends MessageStamp {
   event: typeof EVENT_PROBE;

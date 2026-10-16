@@ -1,8 +1,8 @@
 /**
  * Two HTTPS origins for driving the built SDK in a real browser.
  *
- * `https://localhost:4601` is the partner page. It loads `dist/index.js` the
- * way a partner's bundle would and exposes `open()` and `preload()` to the
+ * `https://localhost:4601` is the host page. It loads `dist/index.js` the
+ * way a host page's bundle would and exposes `open()` and `preload()` to the
  * tests. `https://127.0.0.1:4602` stands in for the connect origin: the probe
  * page, its two endpoints, and a launch page that announces itself.
  *
@@ -34,9 +34,9 @@ const dist = process.env.SDK_DIST
   ? normalize(process.env.SDK_DIST)
   : join(here, "..", "packages", "connect-sdk", "dist");
 
-const PARTNER_PORT = 4601;
+const HOST_PORT = 4601;
 const CONNECT_PORT = 4602;
-const PARTNER = `https://localhost:${PARTNER_PORT}`;
+const HOST = `https://localhost:${HOST_PORT}`;
 const CONNECT = `https://127.0.0.1:${CONNECT_PORT}`;
 
 /**
@@ -232,9 +232,9 @@ function connect(req, res) {
   send(404, "text/plain", "not found");
 }
 
-const partnerPage = `<!doctype html>
-<html><head><title>Partner (test)</title></head>
-<body><h1>Partner page</h1><div id="log"></div>
+const hostPage = `<!doctype html>
+<html><head><title>Host page (test)</title></head>
+<body><h1>Host page</h1><div id="log"></div>
 <iframe id="caller-frame" src="/frame" style="width:600px;height:520px;border:0"></iframe>
 <script type="module">
   import { open, preload } from "/sdk/index.js";
@@ -251,7 +251,7 @@ const partnerPage = `<!doctype html>
       });
     },
     // The same launch into a container that lives in a frame of this page,
-    // the way an older partner app with its modal in a frame calls it.
+    // the way an older host app with its modal in a frame calls it.
     openInFrame(embedKey) {
       window.events = [];
       const frame = document.getElementById("caller-frame");
@@ -273,14 +273,14 @@ const partnerPage = `<!doctype html>
   window.ready = true;
 </script></body></html>`;
 
-/** A frame of the partner's own, holding the modal a launch can mount in. */
-const partnerFrame = `<!doctype html>
+/** A frame of the host page's own, holding the modal a launch can mount in. */
+const hostFrame = `<!doctype html>
 <html><body style="margin:0">
 <div id="modal" style="width:576px;height:480px"></div>
 </body></html>`;
 
-function partner(req, res) {
-  const url = new URL(req.url, PARTNER);
+function host(req, res) {
+  const url = new URL(req.url, HOST);
   if (url.pathname === "/") {
     // `?coop=same-origin` serves the page under that opener policy, the way
     // a site hardening its own page would.
@@ -289,12 +289,12 @@ function partner(req, res) {
       "content-type": "text/html",
       ...(coop ? { "cross-origin-opener-policy": coop } : {}),
     });
-    res.end(partnerPage);
+    res.end(hostPage);
     return;
   }
   if (url.pathname === "/frame") {
     res.writeHead(200, { "content-type": "text/html" });
-    res.end(partnerFrame);
+    res.end(hostFrame);
     return;
   }
   if (url.pathname.startsWith("/sdk/")) {
@@ -318,6 +318,6 @@ if (!existsSync(join(dist, "index.js"))) {
 const tls = certificate();
 // Every interface, so `localhost` answers whether the browser resolves it to
 // IPv4 or IPv6.
-createServer(tls, partner).listen(PARTNER_PORT);
+createServer(tls, host).listen(HOST_PORT);
 createServer(tls, connect).listen(CONNECT_PORT);
-console.log(`partner ${PARTNER}, connect ${CONNECT}`);
+console.log(`host ${HOST}, connect ${CONNECT}`);

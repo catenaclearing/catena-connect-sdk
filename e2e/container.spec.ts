@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * A launch into a container that lives in another document: the partner page
+ * A launch into a container that lives in another document: the host page
  * calls `open()` from its top window with an element inside a same-origin
  * frame of its own. jsdom moves elements between documents without the
  * consequences a browser has, so this is where those are pinned.

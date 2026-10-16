@@ -65,10 +65,11 @@ interface Launch {
    * mode has anything to trust.
    *
    * A reader rather than the window, because a frame's window is not fixed: it
-   * has none until it is in the document, and moving it to another parent —
-   * a portal re-parenting the caller's container — gives it a new one. Taken
-   * once at mount, either case left every callback failing the source check
-   * while the flow itself ran on, revealed by the fallback, with nothing said.
+   * has none until it is in the document, and moving it to another parent (a
+   * portal re-parenting the caller's container) gives it a new one. When the
+   * window was read once at mount, either case left every callback failing
+   * the source check while the flow itself kept running, shown only by the
+   * fallback, and nothing reported the problem.
    */
   source: () => Window | null;
   /**
@@ -99,10 +100,29 @@ interface Launch {
  */
 let live: Launch | null = null;
 
+/**
+ * Launch the flow and return its handle.
+ *
+ * The flow renders in the package's own overlay, or inside `container` when
+ * you pass one. The returned handle has one method, `destroy()`, which removes
+ * everything the launch created.
+ *
+ * Throws a `TypeError` if the invite URL does not parse, is not http or https,
+ * or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`. It
+ * also throws when called outside a browser, or before `<body>` exists with no
+ * `container`.
+ *
+ * One flow runs at a time. Calling this while a launch is live brings that
+ * launch back to the user and returns its handle instead of starting a second
+ * flow. Once a launch has ended and has not been destroyed, calling this
+ * replaces it: the old launch gets `onClose` if it has not had one, its
+ * surface is removed, and a new flow starts with a new handle.
+ */
 export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   if (live !== null && !live.destroyed) {
-    // A second launch while one is live is a double click. They want the
-    // surface they already have, not a second flow behind it.
+    // A second launch while one is live is a double click. Bring back the
+    // surface the user already has instead of starting a second flow behind
+    // it.
     if (!live.finished) {
       live.refocus();
       return live.handle;
@@ -112,10 +132,10 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     //
     // The dismissal goes first, through the path popup mode already uses when
     // a user closes the window and nothing is posted. The app sends its
-    // `close` immediately behind the outcome, so a caller relaunching from
-    // `onSuccess` is standing in a handler with that message already queued
-    // behind them: tearing the listener down here would drop one sent before
-    // they acted, not a late one. `dismiss()` settles the same state either
+    // `close` immediately behind the outcome, so when a caller relaunches from
+    // `onSuccess`, that message is already queued behind their handler.
+    // Tearing the listener down here would drop a message sent before they
+    // acted, not a late one. `dismiss()` settles the same state either
     // way, so a flow that did send its own never gets a second.
     const finished = live;
     try {
@@ -145,11 +165,12 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
     // after a dismissal). The app's contract orders them the other way and
     // never sends a dismissal alone, so an outcome after this point exists
     // only when the popup watchdog beats a message already queued by less
-    // than its poll interval — and the caller relaunches inside `onClose`.
-    // Carrying the listener until that outcome arrives means carrying it
-    // forever when none does, which is every launch the user closed. Once a
-    // second launch has started the caller has moved on, and the alternative
-    // is a listener outliving its launch with nothing bounding its life.
+    // than its poll interval, and the caller relaunches inside `onClose`.
+    // Keeping the listener until that outcome arrives means keeping it forever
+    // when none does, which is every launch the user closed. Once a second
+    // launch has started, the caller no longer cares about the old outcome,
+    // and keeping the listener would leave it outliving its launch with
+    // nothing to end it.
     destroy(finished);
   }
 
@@ -168,9 +189,9 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   //
   // The flow comes off the surface first. The dismissal reveals a frame still
   // held behind the loading state, which would put the flow back in front of
-  // someone who just closed it. And nothing the flow sends afterwards counts:
-  // a frame or window left running until the caller's teardown could still
-  // finish, and deliver an outcome after the close.
+  // someone who just closed it. Messages the flow sends after that are also
+  // ignored, because a frame or window left running until the caller's
+  // teardown could still finish and deliver an outcome after the close.
   const surface = createSurface(options.container, {
     onDismiss: () => {
       launch.surface.clear();
@@ -229,8 +250,8 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   live = launch;
 
   void detectPartitionedCookies(origin, embedKey).then((verdict) => {
-    // The caller may have torn the launch down while the probe ran — a
-    // component unmounting behind a modal is the ordinary way that happens.
+    // The caller may have torn the launch down while the probe ran. A
+    // component unmounting behind a modal is the usual way that happens.
     if (launch.destroyed) return;
     // Or the user dismissed it from the overlay, and the caller has not torn
     // it down yet: their `onClose` may leave that for later. Mounting the
@@ -292,10 +313,10 @@ function enter(launch: Launch, verdict: ProbeVerdict, launchUrl: string): void {
 /**
  * The frame cannot be carried here, so offer the user a window.
  *
- * The whole of popup mode lives inside the activation handler, and that is the
- * point of the shape: by the time the probe answered, the gesture that called
- * `open()` was spent, and the only fresh one available is the user activating
- * this affordance. Nothing is awaited between the two.
+ * All of popup mode runs inside the activation handler. By the time the probe
+ * answered, the gesture that called `open()` was spent, and the only fresh one
+ * available is the user activating this affordance. Nothing is awaited
+ * between the two.
  */
 function offer(launch: Launch, launchUrl: string): void {
   // The window this launch opened, and the watch on it. Held here rather than
@@ -316,10 +337,10 @@ function offer(launch: Launch, launchUrl: string): void {
     // on screen, has nothing left to open a window for.
     if (launch.finished || launch.destroyed) return;
 
-    // The window is already open, so they are asking to be taken back to it —
-    // it has slipped behind the page. Calling `window.open` again would not do
-    // that: it opens a second window beside this one, restarting a flow they
-    // are part-way through.
+    // The window is already open, so they are asking to be taken back to it
+    // because it has slipped behind the page. Calling `window.open` again would
+    // not do that: it opens a second window beside this one, restarting a flow
+    // they are part-way through.
     if (opened !== null && !isClosed(opened)) {
       opened.focus();
       return;
@@ -337,10 +358,10 @@ function offer(launch: Launch, launchUrl: string): void {
 
     const popup = openPopup(withEmbedMode(launchUrl, EMBED_POPUP));
 
-    // Refused inside a frame. The tab is not this page's to take: a redirect
-    // from here navigates only the frame, which loads the flow framed, in the
-    // third-party context the probe has already found it cannot run in. The
-    // affordance stays, and says what would let the next press work.
+    // Refused while this page is in a frame, so redirecting is not an option. A
+    // redirect from here navigates only the frame, which loads the flow framed,
+    // in the third-party context the probe has already found it cannot run in.
+    // The affordance stays, and says what would let the next press work.
     if (popup === null && isFramed()) {
       launch.surface.announce(BLOCKED_MESSAGE);
       refused = true;
@@ -348,10 +369,10 @@ function offer(launch: Launch, launchUrl: string): void {
     }
 
     // The browser refused even this, outright or by handing back a window
-    // that was already closed, so the flow runs in this tab. Nothing is torn
-    // down and nothing is emitted: the page is about to be destroyed by the
-    // navigation, and a dismissal here would reach the caller once now and
-    // again on resume.
+    // that was already closed, so the flow runs in this tab. Do not tear
+    // anything down or emit anything. The navigation is about to destroy the
+    // page, and a dismissal here would reach the caller once now and again on
+    // resume.
     if (popup === null) {
       pending = redirect(withEmbedMode(launchUrl, EMBED_REDIRECT));
       return;
@@ -368,10 +389,11 @@ function offer(launch: Launch, launchUrl: string): void {
       refused = false;
     }
 
-    // A window gone almost as soon as it opened, with the flow still live,
-    // was cut off, not closed: see `warnSevered`. One whose flow already
-    // reached its end said so before it went, which a severed window cannot.
-    // Either way it ends the launch, because nothing more will arrive from it.
+    // A window that closes almost as soon as it opened, with the flow still
+    // live, was most likely cut off rather than closed by the user (see
+    // `warnSevered`). A window whose flow already reached its end reported
+    // that before it went, which a severed window cannot do. In both cases
+    // the launch ends, because nothing more will arrive from that window.
     const openedAt = Date.now();
     stopWatch = watchClosed(popup, () => {
       const elapsed = Date.now() - openedAt;
@@ -395,9 +417,10 @@ function offer(launch: Launch, launchUrl: string): void {
     stopWatch?.();
     stopWatch = null;
 
-    // A launch torn down before its navigation took leaves a record nothing
-    // will ever resume. Clearing it keeps the next `resume()` from finding it
-    // and announcing an outcome for a flow that never went out.
+    // A launch torn down before its navigation took effect leaves a pending
+    // record that will never be resumed. Clearing it keeps the next
+    // `resume()` from finding it and announcing an outcome for a flow that
+    // never went out.
     if (pending !== null) {
       clearPending(pending);
       pending = null;
@@ -418,15 +441,15 @@ function none(): null {
 
 /**
  * What the affordance says when the browser refused the window and the page
- * is in a frame, so the tab is not ours to run the flow in instead.
+ * is in a frame, so the flow cannot run in this tab instead.
  */
 const BLOCKED_MESSAGE =
   "Your browser blocked the new window. Allow pop-ups for this site, then press Continue again.";
 
 /**
  * Whether this page is inside a frame. Reading `top` is allowed across
- * origins; the guard is for a browser that throws anyway, where carrying on
- * as if unframed keeps today's redirect.
+ * origins; the guard is for a browser that throws anyway, where treating the
+ * page as unframed keeps the redirect fallback working as before.
  */
 function isFramed(): boolean {
   try {
@@ -453,8 +476,8 @@ function rethrowLater(error: unknown): void {
  * Everything is inside the guard, the `closed` read included. This runs from a
  * cleanup, and a cleanup that throws takes the rest of the teardown with it:
  * the surface would stay on the page and the launch slot would stay pinned, so
- * the caller could never launch again. A window that will not close is not
- * worth that.
+ * the caller could never launch again. Failing to close a window is the
+ * smaller problem.
  */
 function close(popup: Window | null): void {
   if (popup === null) return;
@@ -507,14 +530,14 @@ function destroy(launch: Launch): void {
 /**
  * Deliver the terminal callback on the page a redirected flow returned to.
  *
- * You state which of your two destination pages this is, because we cannot
- * work it out: the app signals the outcome by choosing between two URLs that
- * live on the invitation, and we are given the invitation, not what is behind
- * it.
+ * You state which of your two destination pages this is, because the package
+ * cannot tell. The app signals the outcome by choosing between two URLs that
+ * are set on the invitation, and the package sees only the invitation URL,
+ * not those settings.
  *
- * **What this keys off.** Not "did this page come back from the flow" — we
- * have no way to know that. It keys off "did a redirected launch go out from
- * this tab recently, and has nothing reported it yet". Two consequences to
+ * **How it decides.** The package has no way to know whether this page came
+ * back from the flow. It checks whether a redirected launch went out from
+ * this tab recently and has not been reported yet. Three consequences to
  * design around:
  *
  * - Calling this on a page reached by an ordinary route is silent *only while
@@ -526,14 +549,15 @@ function destroy(launch: Launch): void {
  * - Both destination pages must be on the same origin as the page that
  *   launched, because the `sessionStorage` record is partitioned by origin as
  *   well as by tab.
- * - Delivery is at-most-once per tab rather than outright. A tab opened by the
+ * - Delivery is at most once per tab, not once overall. A tab opened by the
  *   launching tab while the launch was in flight inherits a copy of its session
  *   storage, so it can report the same outcome again.
  *
- * The query string the app appends does not close either gap. It says how the
- * flow ended, not which tab launched it, so a stale record would still be
- * consumed by the first page that calls this. Closing them needs a marker on
- * the destination URL tying it to this launch, and that is the app's to add.
+ * The query string the app appends does not fix the first or the third. It
+ * says how the flow ended, not which tab launched it, so a stale record would
+ * still be consumed by the first page that calls this. Fixing them needs a
+ * marker on the destination URL tying it to this launch, which the app would
+ * have to add.
  */
 export function resume(options: ResumeOptions): void {
   // Neither declared outcome, which in untyped JavaScript means a typo.
@@ -543,8 +567,9 @@ export function resume(options: ResumeOptions): void {
   // does not consume the launch a later, correct call would have reported.
   if (options.outcome !== "success" && options.outcome !== "exit") return;
 
-  // Read and clear in one step. Live or long dead, the record has been spent by
-  // this call, and a dead one left behind is one a later resume trips over.
+  // Read and clear in one step. Whether it was still valid or long expired,
+  // this call has used the record up, and an expired one left behind would
+  // trip a later resume.
   if (!takePending()) return;
 
   try {
@@ -556,11 +581,11 @@ export function resume(options: ResumeOptions): void {
       options.onExit?.({ reason: exitReason() });
     }
   } finally {
-    // The dismissal is not the outcome callback's to suppress. On the other two
-    // modes these arrive as separate messages, so a handler that throws takes
-    // only itself down — and a caller writes one set of handlers for all
-    // three. The caller's exception still propagates; this only orders the
-    // two.
+    // Deliver the dismissal even if the outcome callback throws. On the other
+    // two modes these arrive as separate messages, so a handler that throws
+    // does not stop the other one, and a caller writes one set of handlers
+    // for all three. The caller's exception still propagates; this only
+    // orders the two.
     options.onClose?.({});
   }
 }
@@ -570,7 +595,8 @@ export function resume(options: ResumeOptions): void {
  * words it: the decline reason when the user gave one, otherwise the status.
  * So the same exit reports the same reason whichever mode carried it.
  *
- * Empty when the URL carries neither, rather than a word the app never said.
+ * Empty when the URL carries neither, so we never report a reason the app did
+ * not send.
  */
 function exitReason(): string {
   try {
@@ -583,7 +609,7 @@ function exitReason(): string {
 
 /**
  * Resolve the mode decision early so the next `open()` does not wait on it.
- * An optimization, never a requirement.
+ * Optional: `open()` works the same without it.
  *
  * Nothing is returned and nothing is awaited: the verdict lands in the probe's
  * cache, which is where `open()` reads it from. The cache is in memory and
@@ -591,15 +617,15 @@ function exitReason(): string {
  * or setting that earned it.
  *
  * The cache holds one verdict per origin and embed key, because the app
- * decides whether this page may frame the flow by the key. Pass the key the
- * launch will use and this warms the exact verdict `open()` reads. Without
- * one it still probes, keyless, and an `open()` with a key probes again.
+ * uses the key to decide whether this page may frame the flow. Pass the key
+ * the launch will use so `open()` can reuse the verdict. Without one it still
+ * probes, keyless, and an `open()` with a key probes again.
  *
- * **Calling this can never break the page.** A URL with no origin to derive
- * throws from `open()`, where a launch is at stake. Here there is nothing to
- * get wrong, and callers run this on mount — often with an invitation their
- * data layer has not delivered yet. Outside a browser, during a server render,
- * it does nothing: there is no document to probe from.
+ * **This never throws.** A URL with no origin to derive throws from `open()`,
+ * where a launch depends on it. Here it is ignored, because callers run this on
+ * mount, often with an invitation their data layer has not delivered yet.
+ * Outside a browser, during a server render, it does nothing: there is no
+ * document to probe from.
  */
 export function preload(options: PreloadOptions): void {
   // A server render reaches this from module scope or a component body. The
