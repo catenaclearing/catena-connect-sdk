@@ -2,11 +2,11 @@
  * The resume hook: the core's `resume()` on the page a redirected flow
  * returns to.
  *
- * Redirect mode leaves the launching page behind, so nothing of the launch
- * survives to deliver its outcome. The core keeps one record of the launch
- * across the navigation and delivers the declared outcome when the next page
- * asks. This hook asks on mount, which is when a route component on the
- * destination page is the right place to ask from.
+ * Redirect mode leaves the launching page behind, along with everything that
+ * would have delivered the launch's outcome. The core keeps one record of the
+ * launch across the navigation and delivers the declared outcome when the
+ * next page asks. This hook asks on mount, so it belongs in a route component
+ * on the destination page.
  */
 
 import {
@@ -34,8 +34,8 @@ export type UseCatenaConnectResumeOptions = ResumeOptions;
  * the matching handler runs once, followed by `onClose`. The handler that
  * runs is the one from the most recent render.
  *
- * What it keys off is that record of a launch, not how this page was reached:
- * the core cannot tell. A page reached by an ordinary route is silent only
+ * It checks for that record of a launch, not for how this page was reached,
+ * which the core cannot tell. A page reached by an ordinary route is silent only
  * while no launch is pending. A redirected launch the user abandoned stays
  * recorded until it expires, and a mount inside that window consumes it and
  * reports the outcome you declared. So keep the hook to your two destination
@@ -47,8 +47,9 @@ export type UseCatenaConnectResumeOptions = ResumeOptions;
  * outcome is still delivered once: the core consumes the record on the first
  * call and the second finds nothing. A handler that throws does not take the
  * component down: its exception is rethrown from a task of its own, where it
- * reaches the console and `window.onerror`. The flow's own documentation
- * covers what the record can and cannot carry across the navigation.
+ * reaches the console and `window.onerror`. The core's `resume()`
+ * documentation covers what the record can and cannot carry across the
+ * navigation.
  */
 export function useCatenaConnectResume(
   options: UseCatenaConnectResumeOptions
@@ -68,8 +69,8 @@ export function useCatenaConnectResume(
   // A throwing handler is rethrown from its own task rather than from the
   // effect. Thrown here, it would reach the nearest error boundary, or
   // unmount the whole tree without one; on the other two modes the same
-  // handler runs from a message event, where its exception takes only itself
-  // down. Rethrown, it still reaches the console and `window.onerror`.
+  // handler runs from a message event, where its exception affects nothing
+  // else. Rethrown, it still reaches the console and `window.onerror`.
   useEffect(() => {
     try {
       resume({ outcome: latest.current.outcome, ...forwarders.current });
