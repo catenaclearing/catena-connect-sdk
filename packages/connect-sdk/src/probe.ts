@@ -5,13 +5,14 @@
  * reports whether the cookie came back. Only that positive confirmation
  * yields `"supported"`; everything else is `"unsupported"`.
  *
- * Failing closed is the whole design, because the two errors cost different
- * amounts. A wrong `"unsupported"` costs one extra click. A wrong
- * `"supported"` strands the user in a frame that cannot work, with no way
- * back. So exactly one code path returns `"supported"`.
+ * The probe fails closed, because the two errors cost different amounts. A
+ * wrong `"unsupported"` costs one extra click. A wrong `"supported"` strands
+ * the user in a frame that cannot work, with no way back. So only one code
+ * path returns `"supported"`.
  *
- * Nothing here reads client hints or a browser-version table. The question is
- * whether this context carries the cookie, and the only way to know is to try.
+ * Nothing here reads client hints or a browser-version table. What matters is
+ * whether this context carries the cookie, and only an actual round trip can
+ * show that.
  *
  * The probe carries the launch's embed key when it has one, because the app
  * lets only the key's registered origins frame a probe that names it. On an
@@ -34,16 +35,16 @@ export type ProbeVerdict = "supported" | "unsupported";
 /**
  * A verdict, and whether the round trip actually went out.
  *
- * A verdict the page reported, refused cookie included, is the browser
- * answering, and worth remembering.
+ * A verdict the page reported, refused cookie included, reflects the browser,
+ * so it is worth caching.
  *
  * Two outcomes are not. A probe that could not be set up sent nothing, so it
  * learned nothing about this origin, and the cause is usually *when* it was
  * called rather than the browser. And a probe that ran out of time learned
  * nothing about cookies either: it says the network or the page was slow on
- * this attempt, which the next one may not be. Caching either would put the
- * page on the fallback for the rest of its life on the strength of one bad
- * moment.
+ * this attempt, which the next one may not be. Caching either would keep the
+ * page on the fallback for as long as it stays open, because of one bad
+ * attempt.
  */
 interface ProbeResult {
   verdict: ProbeVerdict;
@@ -54,7 +55,7 @@ interface ProbeResult {
  * How long the probe page has to arrive, from the frame going in until its
  * `load` event.
  *
- * This is the network in front of the page, and nothing about cookies. A cold
+ * This covers only the network delivering the page, not cookies. A cold
  * connection, through a corporate proxy that inspects TLS, can take seconds to
  * deliver a 3 kB document that a warm one delivers in a few hundred
  * milliseconds. With one budget for the whole probe, that first contact spent
@@ -62,15 +63,15 @@ interface ProbeResult {
  * the flow perfectly well was sent to the window.
  *
  * Generous because the only launch that spends it is one whose network is
- * already slow, and that launch shows its loading state either way. A user
- * waiting a few more seconds for the frame is better served than one handed a
+ * already slow, and that launch shows its loading state either way. Waiting a
+ * few more seconds for the frame is better for the user than being handed a
  * window they did not need.
  */
 export const LOAD_BUDGET_MS = 8000;
 
 /**
- * How long the page has to report once it has loaded, and the only thing that
- * guarantees a verdict at all.
+ * How long the page has to report once it has loaded. This timer is the only
+ * thing that guarantees a verdict at all.
  *
  * Nothing else here reports failure. A frame that is refused, or a page that
  * throws before reporting, posts no message, and its `load` event says only
@@ -84,7 +85,7 @@ export const LOAD_BUDGET_MS = 8000;
  *
  * Counted from `load` rather than from the frame going in, so the document's
  * own delivery no longer comes out of it. A browser that simply refuses the
- * cookie is answered promptly on its own merits and never reaches this timer.
+ * cookie gets a prompt answer from the page and never reaches this timer.
  *
  * Six seconds because the round trip after `load` is two requests, and on a
  * network that adds latency to every request rather than only to the first
@@ -209,8 +210,8 @@ function runProbe(
 
     const onMessage = (event: MessageEvent): void => {
       // The same three guards the flow's own messages get. This verdict
-      // decides whether we use a frame at all, so a forged one is worth as
-      // much care as a forged event.
+      // decides whether we use a frame at all, so a forged one needs the same
+      // checks as a forged event.
       if (event.origin !== origin) return;
 
       const source = frame.contentWindow;
@@ -230,10 +231,10 @@ function runProbe(
     };
 
     try {
-      // Not sandboxed, and not for frame mode's reason. A sandbox without
-      // `allow-same-origin` gives the frame an opaque origin, which is not the
-      // origin whose cookie we are asking about, so the probe would measure
-      // nothing and always fail closed.
+      // Not sandboxed, for a different reason than frame mode. A sandbox
+      // without `allow-same-origin` gives the frame an opaque origin, which is
+      // not the origin whose cookie we are asking about, so the probe would
+      // measure nothing and always fail closed.
       const url = new URL(PROBE_PATH, origin);
       if (embedKey !== undefined) {
         url.searchParams.set(EMBED_KEY_PARAM, embedKey);
@@ -263,8 +264,8 @@ function runProbe(
       // this from a script in the document head, where there is no
       // `document.body` to append to. Either way no round trip is on its way.
       //
-      // Unmeasured: the frame never reached the page, so this says nothing
-      // about the origin and everything about when it was called.
+      // Unmeasured: the frame never reached the page, so this failure reflects
+      // when the probe was called, not the origin.
       settle("unsupported", false);
     }
   });

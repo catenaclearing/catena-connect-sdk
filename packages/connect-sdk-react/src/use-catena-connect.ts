@@ -3,8 +3,8 @@
  *
  * The hook holds the handle, tears the launch down when the component
  * unmounts, and hands the core six stable callbacks that read the current
- * handler at delivery time (see `latest.ts`). What it does not do is change
- * the flow: every option is the core's, with the core's meaning and default.
+ * handler at delivery time (see `latest.ts`). It does not change the flow:
+ * every option is the core's, with the core's meaning and default.
  */
 
 import {
@@ -22,11 +22,11 @@ import { forwardCallbacks, useLatest } from "./latest";
  * Every launch a hook instance in this page started.
  *
  * The core allows one launch at a time and answers a second `open()` with the
- * live launch's own handle. That is the right behavior for a double click,
- * and the wrong thing for a second component to keep: its unmount would tear
- * down a flow another component is still standing behind. So a handle is
- * stored only by the instance whose call created it, and a focus of someone
- * else's launch stores nothing. Weak, so a handle lives no longer than the
+ * live launch's own handle. That is right for a double click, but a second
+ * component should not keep that handle, because its unmount would tear down
+ * a flow another component is still using. So a handle is stored only by the
+ * instance whose call created it, and a call that only focused another
+ * instance's launch stores nothing. Weak, so a handle lives no longer than the
  * launch it belongs to.
  */
 const started = new WeakSet<CatenaConnectHandle>();
@@ -116,14 +116,15 @@ export interface UseCatenaConnectResult {
  * recently, and changing a handler never relaunches. Launch options
  * (`inviteUrl`, `embedKey`, `container`, the presentation options) are fixed
  * for the lifetime of a launch, as in the core; new values apply to the next
- * `open()`. One launch at a time across the whole page: a second `open()`,
- * from this component or any other, focuses the live surface and does not
- * take it over. Only the component that launched a flow tears it down.
+ * `open()`. Only one launch can be live on the page: a second `open()`, from
+ * this component or any other, focuses the live surface and does not take it
+ * over. Only the component that launched a flow tears it down.
  *
- * Use one way in per page. The hook can tell its own launches apart, not a
- * flow the core's own `open()` started: that one it would take for its own
- * and tear down on unmount. A React page drives the flow through this
- * package alone, which is why the core's `open()` is not re-exported.
+ * Do not mix this hook with the core's `open()` on one page. The hook can
+ * tell its own launches from other components' launches, but not from a flow
+ * the core's `open()` started, which it would treat as its own and tear down
+ * on unmount. A React page should drive the flow through this package alone,
+ * which is why the core's `open()` is not re-exported.
  */
 export function useCatenaConnect(
   options: UseCatenaConnectOptions
@@ -153,15 +154,16 @@ export function useCatenaConnect(
         ...launchOptions
       } = { ...latest.current, ...overrides };
 
-      // A programming error, not a state to wait out: swallowing it would hide
-      // a button wired up before the invitation arrived.
+      // Thrown as a programming error rather than ignored, because swallowing
+      // it would hide a button wired up before the invitation arrived.
       if (inviteUrl === null || inviteUrl === undefined) {
         throw new Error(
           "useCatenaConnect: inviteUrl is required to open the flow"
         );
       }
 
-      // A component that has unmounted has nothing left to own a launch.
+      // Do not launch from a component that has already unmounted, since
+      // nothing would be left to tear the launch down.
       if (unmounted.current) return;
 
       // Asked for inline, with nothing to mount into: the element has not
@@ -185,15 +187,15 @@ export function useCatenaConnect(
       // handle to clean up, so the new launch would be stranded on the page
       // with nothing to tear it down.
       if (unmounted.current) {
-        // Only when this call created the launch. A focus of another
-        // component's live flow is not this component's to end.
+        // Only when this call created the launch. If it only focused another
+        // component's live flow, this component must not end it.
         if (!started.has(launched)) launched.destroy();
         return;
       }
 
       // The core answered with a launch that already existed. Our own, on a
-      // double click, is already stored; another component's is theirs to keep
-      // and theirs to tear down.
+      // double click, is already stored; another component's launch is left
+      // for that component to keep and tear down.
       if (started.has(launched)) return;
 
       started.add(launched);
@@ -219,12 +221,12 @@ export function useCatenaConnect(
     };
   }, [destroy]);
 
-  // An optimization, never a requirement, so nothing is awaited and nothing
-  // is torn down: the verdict lands in the core's cache, which is where
-  // `open()` reads it from. Two options matter here. The invite URL names the
-  // origin to probe, and the embed key is part of what the verdict is about:
-  // the core holds one per origin and key, so warming without the key the
-  // launch carries would leave `open()` a probe of its own to run.
+  // Preloading is optional, so nothing is awaited or torn down: the verdict
+  // lands in the core's cache, which is where `open()` reads it from. It
+  // depends on two options. The invite URL names the origin to probe, and the
+  // embed key is part of what the verdict is about: the core holds one per
+  // origin and key, so preloading without the launch's key would leave
+  // `open()` a probe of its own to run.
   const { inviteUrl, embedKey, preload } = options;
   useEffect(() => {
     if (preload === false || !inviteUrl) return;

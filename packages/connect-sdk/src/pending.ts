@@ -2,13 +2,14 @@
  * The one thing that survives redirect mode's navigation.
  *
  * When the browser refuses the popup too, the flow runs in this tab and the
- * page holding the launch is destroyed — listener, surface, callbacks and all.
+ * page holding the launch is destroyed, along with its listener, surface and
+ * callbacks.
  * A single `sessionStorage` record is written just before the assignment so
  * that `resume()`, on the page the flow returns to, can tell a launch that
  * actually went out from a `resume()` call sitting on an ordinary page.
  *
- * `sessionStorage` rather than `localStorage`: a launch in flight belongs to
- * one tab.
+ * `sessionStorage` rather than `localStorage`, because a launch in flight is
+ * tied to one tab.
  *
  * Two limitations worth knowing, neither fixable from here:
  *
@@ -42,8 +43,8 @@ const SCHEMA = "catena-connect.pending/1";
  *
  * Long enough for a provider login, its MFA and any consent screens behind it;
  * short enough that someone who abandoned the flow and came back later gets
- * nothing. The app's own session is what actually gates the flow — this only
- * bounds the callback.
+ * nothing. The app's own session controls whether the flow can continue; this
+ * only limits how long the callback can be delivered.
  */
 const LIFETIME_MS = 30 * 60 * 1000;
 
@@ -76,10 +77,10 @@ export function writePending(): string | null {
     // a resumable outcome.
     //
     // A refused `setItem` leaves whatever was under the key in place, so an
-    // earlier launch's record has to come out before we give up — otherwise
+    // earlier launch's record has to come out before we give up. Otherwise
     // the `resume()` after this navigation reports that stale record as this
-    // launch's outcome. Silence is the documented degradation; a wrong answer
-    // is not.
+    // launch's outcome. Reporting nothing is the documented fallback;
+    // reporting a wrong outcome is not.
     remove(store);
     return null;
   }
@@ -97,8 +98,8 @@ export function writePending(): string | null {
  * We report a launch only once the record is actually gone. If the clear
  * fails this answers `false` for a perfectly good record, because a second
  * resume (a reload of the destination page is enough) would otherwise deliver
- * the same outcome again. Losing a callback is a case the contract already
- * describes; double-counting a completed connection is not.
+ * the same outcome again. A lost callback is a case the contract already
+ * describes; reporting a completed connection twice is not.
  */
 export function takePending(): boolean {
   const store = storage();

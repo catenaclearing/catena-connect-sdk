@@ -4,7 +4,7 @@
  * Three guards, all required. Origin defeats an unrelated page posting a
  * lookalike payload. Source defeats a listener left over from an abandoned
  * launch matching a later one. The payload marker defeats unrelated traffic
- * from our own origin. Dropping any one leaves a real hole.
+ * from our own origin. All three are needed.
  */
 
 import type { ConnectCallbacks } from "./types";
@@ -29,7 +29,7 @@ export interface MessageRouting {
    * the document, and popup mode has no window until the user activates the
    * affordance. Reading it at delivery time lets the listener attach before
    * either exists; a message arriving in between has no source to match and is
-   * correctly rejected.
+   * rejected.
    */
   source: () => Window | null;
   /**
@@ -46,9 +46,9 @@ export interface MessageRouting {
    * Every window the flow's messages can land on. A window posts to its
    * opener, which is always this one; a frame posts to its parent, which is
    * the window of whatever document the caller's container lives in. Defaults
-   * to this window alone. Listening on more than one opens nothing up: each
-   * message is dispatched on exactly one window, and the three guards still
-   * apply to it there.
+   * to this window alone. Listening on more than one adds no exposure: each
+   * message is dispatched on a single window, and the three guards still apply
+   * to it there.
    */
   targets?: readonly Window[];
 }
@@ -58,8 +58,8 @@ export interface Listener {
   /** Remove the listener. */
   stop(): void;
   /**
-   * Deliver the dismissal for a flow that ended without sending one, which
-   * happens exactly one way: the user closes the popup, and that posts
+   * Deliver the dismissal for a flow that ended without sending one. That
+   * happens in only one case: the user closes the popup, which posts
    * nothing. Routed through here rather than called directly so both
    * dismissals settle the same state and a flow that sent its own never gets
    * a second one on top.
@@ -75,7 +75,7 @@ export function listen(
   callbacks: ConnectCallbacks
 ): Listener {
   // Success and exit are terminal and mutually exclusive: whichever arrives
-  // first is the outcome, and a second one is not a correction.
+  // first is the outcome, and a later one is ignored.
   let settled = false;
   // Whether the launch is still live. Separate from `settled`, which is about
   // which outcome the caller was told.
@@ -206,7 +206,7 @@ function asRecord(value: unknown): Record<string, unknown> {
  * All or nothing: a list of strings is forwarded as it arrived, anything else
  * becomes the empty list.
  *
- * Deliberately not a filter. Dropping the elements that look wrong would hand
+ * Not a filter. Dropping the elements that look wrong would hand
  * the caller a shorter list than the flow established, with no way to know
  * it. The empty list is a case the contract already defines.
  */
@@ -216,7 +216,7 @@ function asStrings(value: unknown): string[] {
     : [];
 }
 
-/** The reason is the app's to word; we forward it and invent nothing. */
+/** The app chooses the reason's wording; we forward it and add nothing. */
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }

@@ -9,14 +9,14 @@
  * How the caller's product opened the flow, spelled the way the app spells it.
  *
  * Set when the mode is chosen rather than when the URL is built, because the
- * ladder has not decided yet at that point.
+ * mode has not been decided yet at that point.
  *
  * The app reads this to pick the session cookie attributes, so a value that
- * does not match the context it names is not a cosmetic error. A framed run is
- * a third party and needs a partitioned cookie; a window and a redirect are
- * top-level and must not have one — Safari rejects that cookie outright, and
- * the window is the rung those browsers fall back to. One value for all three
- * cannot carry that distinction, which is why there are three.
+ * does not match the context it names gives the session the wrong cookie. A
+ * framed run is a third party and needs a partitioned cookie; a window and a
+ * redirect are top-level and must not have one. Safari rejects that cookie
+ * outright, and the window is the mode those browsers fall back to. One value
+ * for all three cannot carry that distinction, which is why there are three.
  *
  * Absent means standalone: nobody's SDK opened it. Every launch from this
  * package names one of these.
@@ -26,7 +26,7 @@ export const EMBED_FRAME = "iframe";
 export const EMBED_POPUP = "popup";
 export const EMBED_REDIRECT = "redirect";
 
-/** The three rungs, as the app's contract enumerates them. */
+/** The three modes, as the app's contract enumerates them. */
 export type EmbedMode =
   | typeof EMBED_FRAME
   | typeof EMBED_POPUP
@@ -85,13 +85,13 @@ export const EVENT_CLOSE = "close";
  * still delivers the events we do recognize.
  *
  * Two shapes share this type, and they differ in where the detail sits. A
- * completion carries its fields beside `event` — `connectionId` on a
- * connection or a deletion, `connectionIds` on a success, `reason` on an exit — which is the
- * shape the app's own integration document
- * tells a raw `postMessage` consumer to read, and so is frozen. The probe's
- * verdict is the one message that nests, under `payload`. Reading a
- * completion's fields from `payload` finds nothing and reports an empty list
- * and an empty reason on every success and every exit; that shipped once.
+ * completion carries its fields beside `event`: `connectionId` on a
+ * connection or a deletion, `connectionIds` on a success, `reason` on an
+ * exit. The app's own integration document tells a raw `postMessage`
+ * consumer to read that shape, so it cannot change. The probe's verdict is
+ * the one message that nests, under `payload`. Reading a completion's fields
+ * from `payload` finds nothing and reports an empty list and an empty reason
+ * on every success and every exit. That bug has shipped before.
  */
 export interface WireEnvelope {
   source?: unknown;
