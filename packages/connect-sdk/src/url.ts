@@ -82,19 +82,19 @@ export function connectOrigin(inviteUrl: string): string {
 }
 
 /**
- * Whether an embed key is worth sending: a string with something in it.
+ * True when the embed key is a string with at least one non-space character.
  *
- * Typed `unknown` because the callers this exists for are not type-checked:
- * an unset environment variable reaches us as `undefined` or `""`. A blank key
- * matches no origin, so the app refuses to be framed, while the probe, asked
- * with no usable key, reports that framing works. `undefined` is worse, since
- * the launch URL would carry the literal string "undefined".
+ * Takes `unknown` because JavaScript callers are not type-checked, and an
+ * unset environment variable arrives as `undefined` or `""`. The app matches
+ * a blank key to no origin and refuses to be framed, but the probe treats it
+ * as no key and reports that framing works. `undefined` would put the literal
+ * string "undefined" in the launch URL.
  */
 export function isUsableEmbedKey(embedKey: unknown): embedKey is string {
   return typeof embedKey === "string" && embedKey.trim() !== "";
 }
 
-/** `open()`'s half of the key check. `preload()` skips a bad key instead. */
+/** Throws a `TypeError` for an unusable embed key. Called from `open()`. */
 export function assertEmbedKey(embedKey: unknown): void {
   if (!isUsableEmbedKey(embedKey)) {
     throw new TypeError(

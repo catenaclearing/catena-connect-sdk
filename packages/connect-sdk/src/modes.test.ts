@@ -1813,9 +1813,9 @@ describe("resolving the verdict ahead of a launch", () => {
     ["empty", ""],
     ["whitespace", "  "],
     ["null", null],
-  ])("probes nothing for an embed key that is %s", (_label, badKey) => {
-    // `open()` throws on this key, so a verdict warmed for it would never be
-    // read. Quiet for the same reason as the URL above.
+  ])("does not probe for an embed key that is %s", (_label, badKey) => {
+    // `open()` throws on this key, so there is nothing to warm. No throw
+    // here, for the same reason as the URL above.
     const { inviteUrl } = nextInvite();
 
     expect(() =>

@@ -142,8 +142,8 @@ describe("one flow at a time", () => {
   });
 
   it("returns the live handle rather than checking a second call's key", () => {
-    // The same order as the invite URL: a click on a live launch is a
-    // double click, and its options are never used.
+    // A second call while a launch is live is a double click. It gets the
+    // live handle back and its options are not read, as with the invite URL.
     const first = launch();
 
     expect(sdk.open({ inviteUrl, embedKey: "" })).toBe(first);

@@ -628,10 +628,10 @@ function exitReason(): string {
  * the launch will use so `open()` can reuse the verdict. Without one it still
  * probes, keyless, and an `open()` with a key probes again.
  *
- * **This never throws.** A URL with no origin to derive, or an embed key that
- * is given but blank, throws from `open()`, where a launch depends on it. Here
- * it is ignored, because callers run this on mount, often with an invitation
- * their data layer has not delivered yet.
+ * **This never throws.** A URL with no origin to derive, or an empty embed
+ * key, throws from `open()`, where a launch depends on it. Here it is ignored,
+ * because callers run this on mount, often with an invitation their data layer
+ * has not delivered yet.
  * Outside a browser, during a server render, it does nothing: there is no
  * document to probe from.
  */
@@ -652,8 +652,8 @@ export function preload(options: PreloadOptions): void {
   // Read now, so a caller mutating the options before the document is ready
   // cannot change which verdict this warms.
   const { embedKey } = options;
-  // A key given but blank throws from `open()`, so a verdict warmed for it
-  // would never be read. Leaving the key out is still a keyless probe.
+  // `open()` throws on an empty key, so there is no launch to warm a verdict
+  // for. An omitted key still probes without one.
   if (embedKey !== undefined && !isUsableEmbedKey(embedKey)) {
     return;
   }
