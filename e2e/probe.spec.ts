@@ -243,6 +243,24 @@ test.describe("a probe that never answers", () => {
   );
 });
 
+test.describe("a probe that refuses its frame", () => {
+  test("offers the window about six seconds after the probe loads", async ({
+    page,
+  }) => {
+    // How the app answers a key it does not know. The browser fires `load`
+    // for the error page it shows in place of the probe, so the wait is the
+    // six seconds after load, not the eight a document that never arrives
+    // gets.
+    await hostPage(page);
+    const outcome = await launch(page, key("probe=refused"));
+
+    expect(outcome.mode).toBe("continue");
+    expect(outcome.ms).toBeGreaterThanOrEqual(5800);
+    expect(outcome.ms).toBeLessThan(7800);
+    expect(await page.locator("iframe.frame").count()).toBe(0);
+  });
+});
+
 test.describe("a flow that refuses its frame", () => {
   test(
     "offers the window about eight seconds after the frame loads",
