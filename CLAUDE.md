@@ -285,13 +285,12 @@ JS compiler API), while its `tsconfig.json` sets `ignoreDeprecations` for the
 every emitted file so a server-components application can render the
 component from a server tree; the directive is inert everywhere else.
 
-The package stays `"private": true` until its name exists on the registry.
-npm attaches a trusted publisher to an existing package only, and a public
-workspace package whose version is not on the registry would make the next
-Version Packages merge try, and fail, to publish it over OIDC. The first
-publish is the one-shot `bootstrap-package.yml`; the runbook, including the
-flip PR that removes `private` afterwards, is the "Adding a package"
-paragraph under "Releasing" in the root `README.md`.
+The package was `"private": true` until its name existed on the registry,
+because npm attaches a trusted publisher only to a package that already
+exists. Its first publish went through the one-shot `bootstrap-package.yml`,
+and it now releases through `release.yml` like the core package. A new
+package takes the same path, described in the "Adding a package" paragraph
+under "Releasing" in the root `README.md`.
 
 ## Reference Docs
 
