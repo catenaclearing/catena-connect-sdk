@@ -82,6 +82,30 @@ export function connectOrigin(inviteUrl: string): string {
 }
 
 /**
+ * True when the embed key is a string with at least one non-space character.
+ *
+ * Takes `unknown` because JavaScript callers are not type-checked, and an
+ * unset environment variable arrives as `undefined` or `""`. The app matches
+ * a blank key to no origin and refuses to be framed, but the probe treats it
+ * as no key and reports that framing works. `undefined` would put the literal
+ * string "undefined" in the launch URL.
+ */
+export function isUsableEmbedKey(embedKey: unknown): embedKey is string {
+  return typeof embedKey === "string" && embedKey.trim() !== "";
+}
+
+/** Throws a `TypeError` for an unusable embed key. Called from `open()`. */
+export function assertEmbedKey(embedKey: unknown): void {
+  if (!isUsableEmbedKey(embedKey)) {
+    throw new TypeError(
+      "The embed key must be a string with at least one non-space " +
+        "character. If you read it from an environment variable, check " +
+        "that the variable is set."
+    );
+  }
+}
+
+/**
  * Build the URL the flow is launched at.
  *
  * Parameters are set on the invite URL we were given, so anything it already

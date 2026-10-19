@@ -169,6 +169,21 @@ describe("CatenaConnect", () => {
     expect(surfacesIn(document.body)).toHaveLength(0);
   });
 
+  it("throws an embed key the core refuses to the nearest error boundary", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    const root = render(
+      <Boundary>
+        <CatenaConnect inviteUrl={inviteUrl} embedKey="  " />
+      </Boundary>
+    );
+    quiet.mockRestore();
+
+    expect(root.container.querySelector('[data-testid="caught"]')).not.toBe(
+      null
+    );
+    expect(surfacesIn(document.body)).toHaveLength(0);
+  });
+
   it("tears the launch down and leaves nothing behind on unmount", async () => {
     const root = render(
       <CatenaConnect inviteUrl={inviteUrl} embedKey={embedKey} />

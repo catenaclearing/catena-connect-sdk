@@ -30,7 +30,13 @@ import type {
   PreloadOptions,
   ResumeOptions,
 } from "./types";
-import { buildLaunchUrl, connectOrigin, withEmbedMode } from "./url";
+import {
+  assertEmbedKey,
+  buildLaunchUrl,
+  connectOrigin,
+  isUsableEmbedKey,
+  withEmbedMode,
+} from "./url";
 import { EMBED_FRAME, EMBED_POPUP, EMBED_REDIRECT } from "./wire";
 
 export type {
@@ -108,9 +114,9 @@ let live: Launch | null = null;
  * everything the launch created.
  *
  * Throws a `TypeError` if the invite URL does not parse, is not http or https,
- * or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`. It
- * also throws when called outside a browser, or before `<body>` exists with no
- * `container`.
+ * or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`, or if
+ * the embed key is empty, whitespace or not a string. It also throws when
+ * called outside a browser, or before `<body>` exists with no `container`.
  *
  * One flow runs at a time. Calling this while a launch is live brings that
  * launch back to the user and returns its handle instead of starting a second
@@ -178,6 +184,7 @@ export function open(options: CatenaConnectOptions): CatenaConnectHandle {
   // The probe asks with the same key the launch will carry, because whether
   // the app lets this page frame the flow depends on it.
   const { embedKey } = options;
+  assertEmbedKey(embedKey);
   // Built now rather than when the verdict lands, so the launch is decided by
   // the options as they were at the call. The probe can put seconds between
   // the two, and a caller re-rendering in that window should not be able to
@@ -621,9 +628,10 @@ function exitReason(): string {
  * the launch will use so `open()` can reuse the verdict. Without one it still
  * probes, keyless, and an `open()` with a key probes again.
  *
- * **This never throws.** A URL with no origin to derive throws from `open()`,
- * where a launch depends on it. Here it is ignored, because callers run this on
- * mount, often with an invitation their data layer has not delivered yet.
+ * **This never throws.** A URL with no origin to derive, or an embed key that
+ * is empty, whitespace or not a string, throws from `open()`, where a launch
+ * depends on it. Here it is ignored, because callers run this on mount, often
+ * with an invitation their data layer has not delivered yet.
  * Outside a browser, during a server render, it does nothing: there is no
  * document to probe from.
  */
@@ -644,6 +652,11 @@ export function preload(options: PreloadOptions): void {
   // Read now, so a caller mutating the options before the document is ready
   // cannot change which verdict this warms.
   const { embedKey } = options;
+  // `open()` throws on an empty key, so there is no launch to warm a verdict
+  // for. An omitted key still probes without one.
+  if (embedKey !== undefined && !isUsableEmbedKey(embedKey)) {
+    return;
+  }
 
   // Never rejects, so there is no unhandled rejection behind the `void`. A
   // probe already resolved or running for this origin and key is reused.

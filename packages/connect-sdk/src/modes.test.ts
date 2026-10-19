@@ -1808,6 +1808,32 @@ describe("resolving the verdict ahead of a launch", () => {
     expect(() => preload({ inviteUrl: "" })).not.toThrow();
     expect(probeFrame()).toBeNull();
   });
+
+  it.each([
+    ["empty", ""],
+    ["whitespace", "  "],
+    ["null", null],
+  ])("does not probe for an embed key that is %s", (_label, badKey) => {
+    // `open()` throws on this key, so there is nothing to warm. No throw
+    // here, for the same reason as the URL above.
+    const { inviteUrl } = nextInvite();
+
+    expect(() =>
+      preload({ inviteUrl, embedKey: badKey as unknown as string })
+    ).not.toThrow();
+    expect(probeFrame()).toBeNull();
+  });
+
+  it("still probes without a key when none is given", () => {
+    // An explicit `undefined` is the same as leaving the option out.
+    const { inviteUrl } = nextInvite();
+
+    preload({ inviteUrl, embedKey: undefined });
+
+    const frame = probeFrame();
+    expect(frame).not.toBeNull();
+    expect(new URL(frame?.src ?? "").searchParams.has("embed_key")).toBe(false);
+  });
 });
 
 describe("a probe outlives the launch that was torn down while it ran", () => {

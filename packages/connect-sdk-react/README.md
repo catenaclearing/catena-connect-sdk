@@ -267,12 +267,14 @@ It renders one `div` and launches the flow into it on mount. **Size that
 element**, through `className` or `style`, and the flow fills it. Unmounting
 tears the launch down and leaves the page as it was.
 
-Because the launch happens in a mount effect, an `inviteUrl` the core
-refuses throws from that effect to your nearest error boundary, and without
-one React unmounts the tree. The core refuses a URL that does not parse, is
-not `http` or `https`, or is `http` on a host other than `localhost`,
-`127.0.0.1` or `[::1]`.
-Render the component only once you have the invitation URL you were issued.
+Because the launch happens in a mount effect, an `inviteUrl` or `embedKey`
+the core refuses throws from that effect to your nearest error boundary, and
+without one React unmounts the tree. The core refuses a URL that does not
+parse, is not `http` or `https`, or is `http` on a host other than
+`localhost`, `127.0.0.1` or `[::1]`, and an embed key that is empty,
+whitespace or not a string.
+Render the component only once you have the invitation URL you were issued
+and your embed key.
 
 A launch is fixed for its lifetime, as above. Changing `inviteUrl`,
 `embedKey` or a presentation prop does not touch the flow on the page.
@@ -383,7 +385,8 @@ unconditionally and hide it, or launch from an effect once it has rendered.
 ran in the handler that set a new `inviteUrl`, so it launched the one from the
 latest render. Pass the new URL to `openWith()`. Any other throw comes from the
 core, usually an invitation URL that is `http` on a host other than
-`localhost`, `127.0.0.1` or `[::1]`.
+`localhost`, `127.0.0.1` or `[::1]`, or an empty `embedKey` read from an
+environment variable that is not set.
 
 ## Versioning and support
 

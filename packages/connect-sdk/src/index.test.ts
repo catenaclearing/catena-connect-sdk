@@ -114,6 +114,23 @@ describe("open", () => {
     expect(() => sdk.open({ inviteUrl: "about:blank", embedKey })).toThrow();
     expect(surfacesIn(document.body)).toHaveLength(0);
   });
+
+  // An unset environment variable is the usual source. The app cannot match
+  // a blank key to any registered origin, so it refuses to be framed, while
+  // the probe, asked with no usable key, says framing works.
+  it.each([
+    ["empty", ""],
+    ["whitespace", "  "],
+    ["undefined", undefined],
+    ["null", null],
+    ["a number", 42],
+  ])("throws on an embed key that is %s", (_label, badKey) => {
+    expect(() =>
+      sdk.open({ inviteUrl, embedKey: badKey as unknown as string })
+    ).toThrow(TypeError);
+    expect(surfacesIn(document.body)).toHaveLength(0);
+    expect(document.querySelector("iframe")).toBeNull();
+  });
 });
 
 describe("one flow at a time", () => {
@@ -122,6 +139,14 @@ describe("one flow at a time", () => {
     const second = launch();
 
     expect(second).toBe(first);
+  });
+
+  it("returns the live handle rather than checking a second call's key", () => {
+    // A second call while a launch is live is a double click. It gets the
+    // live handle back and its options are not read, as with the invite URL.
+    const first = launch();
+
+    expect(sdk.open({ inviteUrl, embedKey: "" })).toBe(first);
   });
 
   it("starts no second flow", () => {
