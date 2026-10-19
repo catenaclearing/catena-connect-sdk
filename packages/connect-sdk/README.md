@@ -111,9 +111,10 @@ Hand the invite URL and the embed key to the page from your server
 
 Replace `VERSION` with an exact version from the
 [package page](https://www.npmjs.com/package/@catenaclearing/connect-sdk),
-such as the one you tested against. Do not use a tag like `@latest` or leave
-the version off. With either, your page loads each new release as soon as it
-is published, before you have tried it. unpkg serves the same file at `https://unpkg.com/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js`.
+such as the one you tested against. The browser build is in `1.0.0-beta.10`
+and later, and earlier versions do not have the file. Do not use a tag like
+`@latest` or leave the version off. With either, your page loads each new
+release as soon as it is published, before you have tried it. unpkg serves the same file at `https://unpkg.com/@catenaclearing/connect-sdk@VERSION/dist/connect-sdk.global.js`.
 
 Replace `HASH` with the file's subresource integrity hash. The browser then
 refuses the script if the CDN serves anything other than the published file.
