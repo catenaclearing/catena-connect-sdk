@@ -628,10 +628,10 @@ function exitReason(): string {
  * the launch will use so `open()` can reuse the verdict. Without one it still
  * probes, keyless, and an `open()` with a key probes again.
  *
- * **This never throws.** A URL with no origin to derive, or an empty embed
- * key, throws from `open()`, where a launch depends on it. Here it is ignored,
- * because callers run this on mount, often with an invitation their data layer
- * has not delivered yet.
+ * **This never throws.** A URL with no origin to derive, or an embed key that
+ * is empty, whitespace or not a string, throws from `open()`, where a launch
+ * depends on it. Here it is ignored, because callers run this on mount, often
+ * with an invitation their data layer has not delivered yet.
  * Outside a browser, during a server render, it does nothing: there is no
  * document to probe from.
  */

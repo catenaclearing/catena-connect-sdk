@@ -165,7 +165,8 @@ export interface PreloadOptions {
    * key, because the app uses the key to decide whether this page may frame
    * the flow. Pass the launch's key so `open()` can reuse the verdict. Omit it
    * and the probe runs without a key; an `open()` with a key then probes
-   * again. If the key is empty, `preload()` does nothing.
+   * again. If the key is empty, whitespace or not a string, `preload()` does
+   * nothing.
    */
   embedKey?: string;
 }

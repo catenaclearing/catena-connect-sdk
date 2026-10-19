@@ -695,7 +695,7 @@ Runs the iframe check early so the next `open()` chooses its mode without
 waiting for it. `embedKey` is optional. Pass the same key you will pass to
 `open()` so the warmed check applies to the launch. Without it the check still
 runs, but `open()` repeats it with the key. If `embedKey` is empty,
-`preload()` does nothing.
+whitespace or not a string, `preload()` does nothing.
 
 You do not have to call it. `open()` behaves the same without it; the only
 difference is how long the loading state lasts before the flow starts
