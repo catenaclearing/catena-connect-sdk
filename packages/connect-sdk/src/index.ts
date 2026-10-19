@@ -115,8 +115,8 @@ let live: Launch | null = null;
  *
  * Throws a `TypeError` if the invite URL does not parse, is not http or https,
  * or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`, or if
- * the embed key is not a non-empty string. It also throws when called outside
- * a browser, or before `<body>` exists with no `container`.
+ * the embed key is empty, whitespace or not a string. It also throws when
+ * called outside a browser, or before `<body>` exists with no `container`.
  *
  * One flow runs at a time. Calling this while a launch is live brings that
  * launch back to the user and returns its handle instead of starting a second

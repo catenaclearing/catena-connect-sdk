@@ -291,8 +291,9 @@ and can then do the same three things.
 
 `open()` throws a `TypeError` if the URL does not parse, is not http or
 https, or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`.
-It also throws a `TypeError` if `embedKey` is not a non-empty string, which
-usually means the environment variable you read it from is not set.
+It also throws a `TypeError` if `embedKey` is empty, whitespace or not a
+string, which usually means the environment variable you read it from is not
+set.
 It also throws if it is called before `<body>` exists with no `container`, or
 outside a browser.
 
@@ -1096,9 +1097,11 @@ Change it to `same-origin-allow-popups`
 ([When you receive nothing](#when-you-receive-nothing)).
 
 **`open()` throws.** The invitation URL does not parse, is not http or https,
-or is http on a host other than `localhost`, `127.0.0.1` or `[::1]`. It also
-throws when called before `<body>` exists with no `container`, or outside a
-browser ([`inviteUrl`](#inviteurl)).
+or is http on a host other than `localhost`, `127.0.0.1` or `[::1]`
+([`inviteUrl`](#inviteurl)). Or `embedKey` is empty, whitespace or not a
+string, usually because the environment variable you read it from is not set.
+It also throws when called before `<body>` exists with no `container`, or
+outside a browser.
 
 **`resume()` fires on a page the flow did not return to.** A redirected launch
 left this tab within the last 30 minutes and was abandoned, and `resume()`

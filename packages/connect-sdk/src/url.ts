@@ -98,8 +98,9 @@ export function isUsableEmbedKey(embedKey: unknown): embedKey is string {
 export function assertEmbedKey(embedKey: unknown): void {
   if (!isUsableEmbedKey(embedKey)) {
     throw new TypeError(
-      "The embed key must be a non-empty string. If you read it from an " +
-        "environment variable, check that the variable is set."
+      "The embed key must be a string with at least one non-space " +
+        "character. If you read it from an environment variable, check " +
+        "that the variable is set."
     );
   }
 }

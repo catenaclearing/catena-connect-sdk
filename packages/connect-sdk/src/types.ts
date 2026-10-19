@@ -97,8 +97,8 @@ export interface CatenaConnectOptions extends ConnectCallbacks {
   inviteUrl: string;
   /**
    * Your embed key, forwarded as its own parameter. The app resolves it
-   * server-side against registered origins. The only check here is that it is
-   * a non-empty string: `open()` throws a `TypeError` otherwise.
+   * server-side against registered origins. `open()` throws a `TypeError` if
+   * it is empty, whitespace or not a string.
    */
   embedKey: string;
   /**

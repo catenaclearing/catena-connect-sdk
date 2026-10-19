@@ -271,8 +271,8 @@ Because the launch happens in a mount effect, an `inviteUrl` or `embedKey`
 the core refuses throws from that effect to your nearest error boundary, and
 without one React unmounts the tree. The core refuses a URL that does not
 parse, is not `http` or `https`, or is `http` on a host other than
-`localhost`, `127.0.0.1` or `[::1]`, and an embed key that is not a non-empty
-string.
+`localhost`, `127.0.0.1` or `[::1]`, and an embed key that is empty,
+whitespace or not a string.
 Render the component only once you have the invitation URL you were issued
 and your embed key.
 
