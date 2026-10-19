@@ -247,10 +247,9 @@ test.describe("a probe that refuses its frame", () => {
   test("offers the window about six seconds after the probe loads", async ({
     page,
   }) => {
-    // How the app answers a key it does not know. The browser fires `load`
-    // for the error page it shows in place of the probe, so the wait is the
-    // six seconds after load, not the eight a document that never arrives
-    // gets.
+    // How the app answers a key it does not know. The browser still fires
+    // `load` for the blocked frame, so the SDK waits its 6s budget after load
+    // rather than the 8s it allows for a page that never loads.
     await hostPage(page);
     const outcome = await launch(page, key("probe=refused"));
 

@@ -1,12 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
 
 /**
- * How a launch ends, through the package's own listener, in a real browser.
+ * How a launch ends, in a real browser, through the package's listener.
  *
- * The connect app's own end-to-end suite already checks what the app posts and
- * in what order, using raw listeners. These cover what only the package does
- * with those messages: the callbacks a host page gets, the watchdog that
- * notices a closed window, and `destroy()` partway through.
+ * The connect app's end-to-end suite already checks what the app posts and in
+ * what order. These tests cover what the package does with those messages: the
+ * callbacks the host page gets, the watchdog that notices a closed window, and
+ * `destroy()` partway through.
  *
  * The flow ends when its embed key carries `end=success` or `end=exit`
  * (`e2e/servers.mjs`).
@@ -37,7 +37,7 @@ async function events(page: Page): Promise<string[]> {
   return page.evaluate(() => (window as { events?: string[] }).events ?? []);
 }
 
-/** Launch on a probe whose cookie is refused, then take the window. */
+/** Launch with the probe cookie refused, then click Continue. */
 async function openWindow(page: Page, scenario: string): Promise<Page> {
   await open(page, key(`cookie=refused;${scenario}`));
   const [popup] = await Promise.all([
@@ -49,8 +49,8 @@ async function openWindow(page: Page, scenario: string): Promise<Page> {
 
 /**
  * WebKit on Linux does not carry a partitioned cookie in a cross-site frame,
- * so the probe sends every launch to the window there. Frame tests skip it, as
- * in `probe.spec.ts`.
+ * so every launch there goes to the window. Frame tests skip it, as in
+ * `probe.spec.ts`.
  */
 async function framesTheFlow(
   page: Page,
@@ -89,7 +89,7 @@ test.describe("in a frame", () => {
   test("destroy() removes the frame and hears nothing after", async ({
     page,
   }) => {
-    // The flow would end two seconds in. Destroyed first, it never gets to.
+    // The flow ends 2s after `open`, so `destroy()` runs first.
     await open(page, key("end=success;endAfter=2000"));
     await expect.poll(() => events(page)).toEqual(["open"]);
 
@@ -120,18 +120,18 @@ test.describe("in a window", () => {
     const popup = await openWindow(page, "");
     await expect.poll(() => events(page)).toEqual(["open"]);
 
-    // A window closed sooner than this after opening is taken for one an
-    // opener policy cut off (`SEVERED_MS`), not one a person closed.
+    // The SDK treats a window that closes within 1.5s of opening as cut off
+    // by an opener policy (`SEVERED_MS`), not closed by the user.
     await page.waitForTimeout(1600);
     await popup.close();
     const closed = Date.now();
 
-    // A short fixed interval, so the time measured is when `close` arrived
-    // and not when the poll's backoff next looked.
+    // Poll every 100ms. The default backoff can leave a second between
+    // checks, which would count against the bound below.
     await expect
       .poll(() => events(page), { intervals: [100] })
       .toEqual(["open", "close"]);
-    // The watchdog checks every 500ms. The rest is slack for a busy runner.
+    // The watchdog checks every 500ms. The rest is slack for a slow runner.
     expect(Date.now() - closed).toBeLessThan(1500);
   });
 

@@ -163,7 +163,7 @@ function probePage(raw, silent) {
 }
 
 /**
- * The flow's page. Like the app, it reads the mode off its own URL and posts to
+ * The flow's page. Like the app, it reads the mode from its URL and posts to
  * the host page's origin: a frame to its parent, a window to its opener.
  */
 function launchPage(s, mode) {
@@ -177,7 +177,7 @@ function launchPage(s, mode) {
 <html><body><p>Catena Connect (test)</p><script>
   var target = ${mode === "popup" ? "window.opener" : "window.parent"};
   var post = function (message) {
-    // A window an opener policy cut off has no opener to post to.
+    // Under coop=same-origin the window has no opener.
     if (!target) return;
     message.source = "catena-connect";
     message.version = 1;
