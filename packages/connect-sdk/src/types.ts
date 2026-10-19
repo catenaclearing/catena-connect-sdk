@@ -97,7 +97,8 @@ export interface CatenaConnectOptions extends ConnectCallbacks {
   inviteUrl: string;
   /**
    * Your embed key, forwarded as its own parameter. The app resolves it
-   * server-side against registered origins; we neither parse nor validate it.
+   * server-side against registered origins. The only check here is that it is
+   * a non-empty string: `open()` throws a `TypeError` otherwise.
    */
   embedKey: string;
   /**
@@ -164,7 +165,7 @@ export interface PreloadOptions {
    * key, because the app uses the key to decide whether this page may frame
    * the flow. Pass the launch's key so `open()` can reuse the verdict. Omit it
    * and the probe runs without a key; an `open()` with a key then probes
-   * again.
+   * again. A key that is given but blank probes nothing.
    */
   embedKey?: string;
 }

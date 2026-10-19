@@ -291,6 +291,8 @@ and can then do the same three things.
 
 `open()` throws a `TypeError` if the URL does not parse, is not http or
 https, or is http on any host other than `localhost`, `127.0.0.1` or `[::1]`.
+It also throws a `TypeError` if `embedKey` is not a non-empty string, which
+usually means the environment variable you read it from is not set.
 It also throws if it is called before `<body>` exists with no `container`, or
 outside a browser.
 
@@ -692,7 +694,8 @@ preload({ inviteUrl, embedKey });
 Runs the iframe check early so the next `open()` chooses its mode without
 waiting for it. `embedKey` is optional. Pass the same key you will pass to
 `open()` so the warmed check applies to the launch. Without it the check still
-runs, but `open()` repeats it with the key.
+runs, but `open()` repeats it with the key. A key that is given but empty is
+ignored along with the call, since `open()` would throw on it.
 
 You do not have to call it. `open()` behaves the same without it; the only
 difference is how long the loading state lasts before the flow starts

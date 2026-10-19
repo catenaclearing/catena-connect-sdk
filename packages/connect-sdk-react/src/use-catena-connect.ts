@@ -73,7 +73,7 @@ export type UseCatenaConnectOpenOptions = {
  * The hook's options that describe a launch. In the type above, a key that is
  * optional here also takes an explicit `undefined`, which clears the rendered
  * value even under `exactOptionalPropertyTypes`. A required key does not: an
- * `embedKey` of `undefined` would launch with no key at all.
+ * `embedKey` of `undefined` would make `open()` throw.
  */
 type LaunchOptions = Omit<
   UseCatenaConnectOptions,
@@ -86,7 +86,8 @@ export interface UseCatenaConnectResult {
    * Launch the flow with the options as of the latest render, or bring the
    * live surface back if a launch is already up. Throws when `inviteUrl` is
    * absent, when `container` was given but its ref is not attached, and
-   * whatever the core's `open()` throws on an invalid URL.
+   * whatever the core's `open()` throws on an invalid URL or a blank embed
+   * key.
    *
    * A value set in the same event handler has not rendered yet, so `open()`
    * cannot see it. To launch with a value you have only just obtained, such
