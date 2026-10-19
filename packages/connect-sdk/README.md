@@ -121,23 +121,29 @@ refuses the script if the CDN serves anything other than the published file.
 Compute the hash from the package on npm, not from the file the CDN serves:
 
 ```sh
-TARBALL=$(npm pack @catenaclearing/connect-sdk@VERSION)
+TARBALL=$(npm pack @catenaclearing/connect-sdk@VERSION --registry=https://registry.npmjs.org/)
 tar -xOzf "$TARBALL" package/dist/connect-sdk.global.js \
   | openssl dgst -sha384 -binary | openssl base64 -A
 ```
 
-The command prints the hash alone. Put it after `sha384-` in the `integrity`
-attribute. Each version has a different hash, so compute it again when you
+The `--registry` flag makes `npm pack` fetch from npm even if your npm config
+maps the `@catenaclearing` scope to another registry. The command prints the
+hash alone and leaves the `.tgz` file in the current directory, which you can
+delete. Put the hash after `sha384-` in the `integrity` attribute. Each version has a different hash, so compute it again when you
 upgrade.
 
 If your page sends a Content Security Policy, the script tag adds to what an
 install from npm needs:
 
-- `script-src` must allow the CDN you load the file from,
-  `https://cdn.jsdelivr.net` or `https://unpkg.com`, and wherever your own
-  launch script is served from, such as `'self'`. If your policy has a
-  `script-src-elem`, it applies to `<script>` tags instead of `script-src`, so
-  allow both there.
+- Allow the CDN you load the file from, `https://cdn.jsdelivr.net` or
+  `https://unpkg.com`, and wherever your own launch script is served from,
+  such as `'self'`. Add them to `script-src-elem` if your policy has one,
+  because it governs `<script>` tags. If it has no `script-src-elem`, use
+  `script-src`, and if it has neither, use `default-src`. Browsers that do not
+  support `script-src-elem` read `script-src` instead, so to cover them, add
+  the sources there as well. If your policy uses `'strict-dynamic'`, browsers
+  ignore host sources such as the CDN. Give both `<script>` tags your
+  policy's nonce instead.
 
 - Keep the launch code in a file, as above. An inline `<script>` runs only if
   your policy allows it through a nonce, a hash or `'unsafe-inline'`.
@@ -1097,6 +1103,27 @@ webhooks still record the connections
 popup. The console shows a warning from the package naming the header.
 Change it to `same-origin-allow-popups`
 ([When you receive nothing](#when-you-receive-nothing)).
+
+**`CatenaConnect is not defined`.** You load the package
+[from a script tag](#from-a-script-tag), and your launch script throws
+`ReferenceError: CatenaConnect is not defined`. Nothing renders. The browser
+did not run the browser build, so the global was never defined. The console
+shows which of these it was, next to the error:
+
+- Your Content Security Policy blocks the CDN or your launch script. The
+  console shows a violation report for `script-src-elem`, `script-src`, or
+  `default-src` when the policy has neither. Allow the CDN and the origin of
+  your launch script, or give both tags your nonce if the policy uses
+  `'strict-dynamic'`.
+
+- The `integrity` hash does not match the file. The usual reasons are a hash
+  computed for another version, or a hash taken from the file the CDN serves
+  instead of from the package on npm. The console says no valid digest was
+  found in the `integrity` attribute. Compute it again from the package on npm
+  for the exact version in the URL.
+
+- The version in the URL is older than `1.0.0-beta.10`, which has no browser
+  build. The request for the file returns 404. Use `1.0.0-beta.10` or later.
 
 **`open()` throws.** The invitation URL does not parse, is not http or https,
 or is http on a host other than `localhost`, `127.0.0.1` or `[::1]`
