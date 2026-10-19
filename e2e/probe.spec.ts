@@ -243,6 +243,23 @@ test.describe("a probe that never answers", () => {
   );
 });
 
+test.describe("a probe that refuses its frame", () => {
+  test("offers the window about six seconds after the probe loads", async ({
+    page,
+  }) => {
+    // How the app answers a key it does not know. The browser still fires
+    // `load` for the blocked frame, so the SDK waits its 6s budget after load
+    // rather than the 8s it allows for a page that never loads.
+    await hostPage(page);
+    const outcome = await launch(page, key("probe=refused"));
+
+    expect(outcome.mode).toBe("continue");
+    expect(outcome.ms).toBeGreaterThanOrEqual(5800);
+    expect(outcome.ms).toBeLessThan(7800);
+    expect(await page.locator("iframe.frame").count()).toBe(0);
+  });
+});
+
 test.describe("a flow that refuses its frame", () => {
   test(
     "offers the window about eight seconds after the frame loads",

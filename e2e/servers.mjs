@@ -4,7 +4,8 @@
  * `https://localhost:4601` is the host page. It loads `dist/index.js` the
  * way a host page's bundle would and exposes `open()` and `preload()` to the
  * tests. `https://127.0.0.1:4602` stands in for the connect origin: the probe
- * page, its two endpoints, and a launch page that announces itself.
+ * page, its two endpoints, and a launch page that announces itself and can end
+ * the flow.
  *
  * Two hosts rather than two ports, because a port does not make a site. The
  * probe only measures anything in a cross-site frame, and `localhost` and
@@ -90,6 +91,12 @@ function certificate() {
  * - `cookie=refused`: `set` sends no cookie, as a browser refusing it would
  *   leave things.
  * - `silent`: the page loads and never reports.
+ * - `probe=refused`: the probe document refuses to be framed, as the app
+ *   refuses it for a key it does not know.
+ * - `flow=refused`: the launch page refuses to be framed.
+ * - `end=success` or `end=exit`: after `open`, the launch page ends the flow
+ *   and then posts `close`, as the app does.
+ * - `endAfter`: ms between `open` and the end, so a test can act first.
  */
 function scenario(raw) {
   const out = {};
@@ -155,12 +162,37 @@ function probePage(raw, silent) {
 </script></body></html>`;
 }
 
-/** What the flow posts when it is on screen, from a frame or a window. */
-const launchPage = `<!doctype html>
+/**
+ * The flow's page. Like the app, it reads the mode from its URL and posts to
+ * the host page's origin: a frame to its parent, a window to its opener.
+ */
+function launchPage(s, mode) {
+  const ending =
+    s.end === "success"
+      ? { event: "success", connectionIds: ["conn_1", "conn_2"] }
+      : s.end === "exit"
+        ? { event: "exit", reason: "user_exit" }
+        : null;
+  return `<!doctype html>
 <html><body><p>Catena Connect (test)</p><script>
-  var target = window.opener || window.parent;
-  target.postMessage({ source: "catena-connect", version: 1, event: "open" }, "*");
+  var target = ${mode === "popup" ? "window.opener" : "window.parent"};
+  var post = function (message) {
+    // Under coop=same-origin the window has no opener.
+    if (!target) return;
+    message.source = "catena-connect";
+    message.version = 1;
+    target.postMessage(message, ${JSON.stringify(HOST)});
+  };
+  post({ event: "open" });
+  var ending = ${JSON.stringify(ending)};
+  if (ending) {
+    setTimeout(function () {
+      post(ending);
+      post({ event: "close" });
+    }, ${Number(s.endAfter) || 0});
+  }
 </script></body></html>`;
+}
 
 function connect(req, res) {
   const url = new URL(req.url, CONNECT);
@@ -179,8 +211,12 @@ function connect(req, res) {
     const hits = (documentHits.get(raw) ?? 0) + 1;
     documentHits.set(raw, hits);
     const delay = hits === 1 && s.docOnce ? s.docOnce : (s.doc ?? 0);
+    const headers =
+      s.probe === "refused"
+        ? { "content-security-policy": "frame-ancestors 'none'" }
+        : {};
     after(delay, req, () =>
-      send(200, "text/html", probePage(raw, "silent" in s))
+      send(200, "text/html", probePage(raw, "silent" in s), headers)
     );
     return;
   }
@@ -225,7 +261,12 @@ function connect(req, res) {
       s.flow === "refused"
         ? { "content-security-policy": "frame-ancestors 'none'" }
         : {};
-    send(200, "text/html", launchPage, headers);
+    send(
+      200,
+      "text/html",
+      launchPage(s, url.searchParams.get("embed")),
+      headers
+    );
     return;
   }
 
@@ -247,6 +288,8 @@ const hostPage = `<!doctype html>
         inviteUrl: window.connectOrigin + "/i/test",
         embedKey,
         onOpen: () => window.events.push("open"),
+        onSuccess: (e) => window.events.push("success:" + e.connectionIds),
+        onExit: (e) => window.events.push("exit:" + e.reason),
         onClose: () => window.events.push("close"),
       });
     },
