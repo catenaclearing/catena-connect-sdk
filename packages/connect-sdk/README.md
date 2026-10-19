@@ -1046,8 +1046,9 @@ confirm that this browser will run the flow in a frame. The causes:
   ready, usually because the connect origin refused to be framed. The button
   appears about eight seconds after that iframe loads.
 
-- This page already probed once with no answer. That verdict is kept until
-  the page reloads.
+- The browser refused the cookie on an earlier check from this page. The
+  package keeps that result until the page reloads, so changing the
+  browser's cookie settings has no effect before then.
 
 The flow still works through the button, which opens it in a window, or in
 the tab when the browser blocks the window too and your page is not itself
