@@ -18,7 +18,7 @@ the Catena API, and hand the URL to your page from your own server.
 origin registered against your embed key, and Catena registers the origins
 you give it. Scheme, host and port must match exactly, so `www` and the apex
 are different origins. On an unregistered origin the flow still runs, in a
-popup, but your page receives no callbacks.
+popup, but its messages never reach your page.
 
 **Popups kept connected.** If the launching page sends a
 `Cross-Origin-Opener-Policy` header, it must be `same-origin-allow-popups` or
