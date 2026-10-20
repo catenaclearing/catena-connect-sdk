@@ -1,5 +1,15 @@
 # @catenaclearing/connect-sdk
 
+## 1.0.0-beta.10
+
+### Minor Changes
+
+- cc5c036: The package now ships a browser build for pages without a bundler. Load `dist/connect-sdk.global.js` from a CDN such as jsDelivr or unpkg with a `<script>` tag, pinned to an exact version and an integrity hash, and call `CatenaConnect.open`, `resume` and `preload` the same way as the imported functions.
+
+### Patch Changes
+
+- ae6f5e3: `open()` now throws a `TypeError` when `embedKey` is empty, whitespace or not a string, instead of launching a flow the connect app refuses to show in a frame. `preload()` skips such a key without throwing. With `<CatenaConnect>`, the throw reaches your nearest error boundary, as an invalid invite URL already does.
+
 ## 1.0.0-beta.9
 
 ### Minor Changes
