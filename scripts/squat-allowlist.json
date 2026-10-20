@@ -42,5 +42,6 @@
   "catenna-connect",
   "catena-connct-sdk",
   "catena-corpus",
-  "@3sixty/standards-vda"
+  "@3sixty/standards-vda",
+  "catena"
 ]
