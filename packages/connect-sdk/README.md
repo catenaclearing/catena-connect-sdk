@@ -60,7 +60,7 @@ tar -xOzf "$TARBALL" package/dist/connect-sdk.global.js \
   | openssl dgst -sha384 -binary | openssl base64 -A
 ```
 
-The [docs](https://docs.catenatelematics.com/get-started/connect-sdk/overview)
+The [docs](https://docs.catenatelematics.com/get-started/connect-sdk/overview#install)
 cover Content Security Policy for the script tag.
 
 ## Quick start
@@ -175,9 +175,10 @@ record the connections.
 
 **Branding is ignored.** The embed key isn't valid, or a value is malformed.
 
-**`open()` throws.** The invitation URL isn't `https` (plain `http` works only
-on `localhost`, `127.0.0.1` and `[::1]`), or `embedKey` is empty or not a
-string.
+**`open()` throws.** The invitation URL doesn't parse or isn't `https` (plain
+`http` works only on `localhost`, `127.0.0.1` and `[::1]`), or `embedKey` is
+empty, only whitespace, or not a string. It also throws outside a browser, or
+before `<body>` exists without a `container`.
 
 [Troubleshooting](https://docs.catenatelematics.com/get-started/connect-sdk/troubleshooting)
 covers these and more. To embed the flow with no package, see
