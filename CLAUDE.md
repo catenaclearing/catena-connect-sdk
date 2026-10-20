@@ -186,7 +186,11 @@ Every PR that changes published package code needs a real changeset
 (`pnpm changeset`, target `@catenaclearing/connect-sdk`, one user-facing line).
 Use an **empty** changeset (`---\n---`) for changes with no runtime effect:
 CI/workflow config, docs, `defensive/`, `scripts/`. An empty changeset next to a
-real code change is a bug, not a style choice. The one exception is a package
+real code change is a bug, not a style choice. A change to a package's
+`README.md` is the exception the other way: npm shows the README from the last
+publish, so it gets a `patch` changeset (ending "No runtime change.") for each
+package whose README changed, or the new text never reaches npm. The other
+exception is a package
 that is still `"private": true` and unpublished: changesets neither versions
 nor publishes it, so its PRs carry empty changesets until the PR that removes
 `private`, which carries the `major` changeset for the first release.

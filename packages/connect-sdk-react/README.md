@@ -27,8 +27,11 @@ Look-alike packages exist. The only official ones are this package and
 [`@catenaclearing/connect-sdk`](https://www.npmjs.com/package/@catenaclearing/connect-sdk).
 
 The core comes with it as a dependency. If you also install the core
-directly, keep both on the same major (during the beta, install the core with
-`@beta` too).
+directly, keep both on the same major. During the beta, that means:
+
+```sh
+npm install @catenaclearing/connect-sdk@beta
+```
 
 ## Quick start
 
@@ -70,7 +73,7 @@ function ConnectPanel({ inviteUrl, embedKey }) {
 }
 ```
 
-The flow stays on the page after the user presses **Done**. With the hook,
+The flow stays on the page after the user finishes it. With the hook,
 call `destroy()` from `onClose`. With the component, unmount it.
 
 ### If the browser blocks the popup
@@ -120,7 +123,8 @@ since a value set in the same handler hasn't rendered yet.
 
 **`<CatenaConnect />`** renders a `div` and launches into it on mount. It takes
 the same options as props, minus `container` and `preload`, plus any `div`
-prop. Changing options doesn't touch a live flow. Change `key` to relaunch.
+prop except `children`, `dangerouslySetInnerHTML` and `ref`. Changing options
+doesn't touch a live flow. Change `key` to relaunch.
 
 **`useCatenaConnectResume(options)`** is the core's `resume()` as a hook. Use it
 only on your two redirect pages.

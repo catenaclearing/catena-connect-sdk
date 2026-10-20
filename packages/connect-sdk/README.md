@@ -114,16 +114,16 @@ Both pages must be on the same origin as the page that called `open()`.
 
 | Option | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `inviteUrl` | `string` | yes | Must be `https`, except on localhost. |
+| `inviteUrl` | `string` | yes | Must be `https`. Plain `http` works only on `localhost`, `127.0.0.1` and `[::1]`. |
 | `embedKey` | `string` | yes | |
 | `container` | `HTMLElement` | no | Render inline instead of in the package's overlay. Give it a height of at least 480px. |
-| `variant` | `"full" \| "card"` | no | `"card"` drops the header and suits the overlay or a small container. |
-| `theme` | `"light" \| "dark"` | no | Forces the color scheme. Omit it to follow the user. |
+| `variant` | `"full" \| "card" \| string` | no | `"card"` drops the header and suits the overlay or a small container. |
+| `theme` | `"light" \| "dark" \| string` | no | Forces the color scheme. Omit it to follow the user. |
 | `brandColor`, `brandSecondary` | `string` | no | Six hex digits. |
 | `logoUrl`, `logoUrlDark` | `string` | no | Absolute `https` URLs. |
 | `onOpen`, `onConnection`, `onConnectionDeleted`, `onSuccess`, `onExit`, `onClose` | callbacks | no | See [Events](#events). |
 
-The branding options apply only when the embed key is valid. `preload()`
+`variant` and `theme` also accept other strings, so a value the flow adds later works without an upgrade. The branding options apply only when the embed key is valid. `preload()`
 takes `inviteUrl` and `embedKey` and runs the iframe check ahead of the click.
 It's optional.
 
@@ -141,7 +141,9 @@ covers every option, `resume()` and `preload()` in full.
 | `onExit` | The flow ended without success. | `{ reason: string }` |
 | `onClose` | The surface should be dismissed. | none |
 
-`onSuccess` means the user pressed **Done**, not that a connection was made.
+`onSuccess` means the user pressed the button on the success screen (**Done**
+in the iframe, **Return to** followed by your name in a popup or redirected
+tab), not that a connection was made.
 A user can connect a provider and close the tab. Use your connection webhooks
 as the record of what was connected.
 
@@ -166,7 +168,9 @@ record the connections.
 
 **Branding is ignored.** The embed key isn't valid, or a value is malformed.
 
-**`open()` throws.** The invitation URL isn't `https`, or `embedKey` is empty.
+**`open()` throws.** The invitation URL isn't `https` (plain `http` works only
+on `localhost`, `127.0.0.1` and `[::1]`), or `embedKey` is empty or not a
+string.
 
 [Troubleshooting](https://docs.catenatelematics.com/get-started/connect-sdk/troubleshooting)
 covers these and more. To embed the flow with no package, see
