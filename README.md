@@ -18,15 +18,10 @@ redirect path navigates away from the page holding your callbacks, so its
 outcome comes back through `resume()` on the page the flow returns to. It has
 no runtime dependencies and renders its surface inside a shadow root.
 
-The [package README](packages/connect-sdk/README.md) covers the options, the
-events, the three modes, `resume()`, and the cases where no callback arrives.
-The flow can also be embedded with no package at all, from a URL and a
-`postMessage` listener you write yourself; the
-[Without the package](packages/connect-sdk/README.md#without-the-package)
-section documents the launch URL parameters and the message shape. When an
-embed shows a button instead of the flow or never calls back, the
-[Troubleshooting](packages/connect-sdk/README.md#troubleshooting) section goes
-from the symptom to the fix.
+The [package README](packages/connect-sdk/README.md) gets you started, and
+the [full documentation](https://docs.catenatelematics.com/get-started/connect-sdk/overview)
+covers the options, the events, the three modes, troubleshooting, and
+embedding the flow with no package at all.
 
 ## Development
 
@@ -79,9 +74,11 @@ Every user-facing change lands with a changeset (`pnpm changeset`). On merge to
 merge to `main` starts no workflow at all, GitHub has dropped the push event:
 run `release.yml` by hand from the Actions tab ("Run workflow" on `main`),
 which does the same thing the push would have. The
-versioning, deprecation and support policy those releases follow is the
+versioning, deprecation and support policy those releases follow is
+summarized in the package README's
 [Versioning and support](packages/connect-sdk/README.md#versioning-and-support)
-section of the package README.
+section and published in full on the
+[docs site](https://docs.catenatelematics.com/get-started/connect-sdk/versioning).
 
 How publishing is locked down:
 

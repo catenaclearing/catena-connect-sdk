@@ -207,21 +207,24 @@ to upgrade. `pnpm check` enforces the measurable parts through
 - PR notes (review context, what was tried, why not the other way) belong in
   the PR, not in the entry.
 
-The published form of this rule is the "Versioning and support" section of
-`packages/connect-sdk/README.md`. Change the policy there first, then here and
-in the check together.
+The published policy lives in two places: a short summary in the "Versioning
+and support" section of `packages/connect-sdk/README.md`, and the full text on
+the docs site's versioning page (`get-started/connect-sdk/versioning.mdx` in
+the API docs repository). Change the full policy first, then the summary if
+it is affected, then here and in the check together.
 
 Deprecating a covered export, option, callback or payload field is a minor
-release, and the PR that does it makes three edits, one per channel the README
+release, and the PR that does it makes three edits, one per channel the policy
 promises: a `minor` changeset whose entry announces the deprecation and names
 the replacement; the symbol's JSDoc gains `@deprecated` with the same
 replacement in the tag, so editors flag it through the published type
 declarations (for a payload field, the tag sits on that property of the
-payload type); and the symbol is added to the **Currently deprecated** list in
-the README's "Deprecation" subsection. The tag and the list entry stay until
-the major that removes the symbol; that major's changeset carries the
-migration note and deletes the list entry. Nothing is deprecated today, so the
-list reads "Nothing" until the first one.
+payload type); and the symbol is added to the **Currently deprecated** list,
+which appears in the "Versioning and support" section of both package READMEs
+and on the docs site's versioning page. The tag and the list entries stay
+until the major that removes the symbol; that major's changeset carries the
+migration note and deletes the entries. Nothing is deprecated today, so the
+lists read "Nothing" until the first one.
 
 ## Typosquat Defenses
 
