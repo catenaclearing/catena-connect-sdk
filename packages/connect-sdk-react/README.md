@@ -112,7 +112,8 @@ function ConnectFailed() {
 stable across renders. It takes the core's `open()` options, with a few
 differences:
 
-- `inviteUrl` can be `null` while you load it. `open()` throws until it's set.
+- `inviteUrl` can be `null` or `undefined` while you load it. `open()` throws
+  until it's set.
 
 - `container` is a ref, not an element.
 
@@ -125,8 +126,9 @@ since a value set in the same handler hasn't rendered yet.
 
 **`<CatenaConnect />`** renders a `div` and launches into it on mount. It takes
 the same options as props, minus `container` and `preload`, plus any `div`
-prop except `children`, `dangerouslySetInnerHTML` and `ref`. Changing options
-doesn't touch a live flow. Change `key` to relaunch.
+prop except `children`, `dangerouslySetInnerHTML` and `ref`. `inviteUrl` must
+be a string, so render it once you have the URL. Changing options doesn't touch
+a live flow. Change `key` to relaunch.
 
 **`useCatenaConnectResume(options)`** is the core's `resume()` as a hook. Use it
 only on your two redirect pages.
