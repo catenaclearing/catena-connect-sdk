@@ -1,5 +1,15 @@
 # @catenaclearing/connect-sdk-react
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- ae6f5e3: `open()` now throws a `TypeError` when `embedKey` is empty, whitespace or not a string, instead of launching a flow the connect app refuses to show in a frame. `preload()` skips such a key without throwing. With `<CatenaConnect>`, the throw reaches your nearest error boundary, as an invalid invite URL already does.
+- 53834f9: `useCatenaConnect()`'s `open()` now throws when `container` is given but its ref is not attached to an element, instead of opening the flow in the full-page overlay. A throwing handler under `useCatenaConnectResume()` no longer reaches your error boundary. Its exception is rethrown in a separate task, the same way a throw from a handler in the other modes is. `<CatenaConnect />` now declares its return type as `ReactElement`, a type every `@types/react` 18 release exports, and its documentation says that an `inviteUrl` the core refuses throws from its mount effect.
+- Updated dependencies [ae6f5e3]
+- Updated dependencies [cc5c036]
+  - @catenaclearing/connect-sdk@1.0.0-beta.10
+
 ## 1.0.0-beta.4
 
 ### Minor Changes
