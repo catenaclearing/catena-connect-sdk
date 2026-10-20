@@ -121,12 +121,12 @@ refuses the script if the CDN serves anything other than the published file.
 Compute the hash from the package on npm, not from the file the CDN serves:
 
 ```sh
-TARBALL=$(npm pack @catenaclearing/connect-sdk@VERSION --registry=https://registry.npmjs.org/)
+TARBALL=$(npm pack @catenaclearing/connect-sdk@VERSION --@catenaclearing:registry=https://registry.npmjs.org/)
 tar -xOzf "$TARBALL" package/dist/connect-sdk.global.js \
   | openssl dgst -sha384 -binary | openssl base64 -A
 ```
 
-The `--registry` flag makes `npm pack` fetch from npm even if your npm config
+The `--@catenaclearing:registry` flag makes `npm pack` fetch from npm even if your npm config
 maps the `@catenaclearing` scope to another registry. The command prints the
 hash alone and leaves the `.tgz` file in the current directory, which you can
 delete. Put the hash after `sha384-` in the `integrity` attribute. Each version has a different hash, so compute it again when you
