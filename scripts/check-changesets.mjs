@@ -116,7 +116,7 @@ for (const finding of findings) {
 }
 console.log(
   "A changeset body is published as a changelog entry under the versioning " +
-    "and support policy in packages/connect-sdk/README.md. Rewrite the entry " +
+    "and support policy summarized in packages/connect-sdk/README.md. Rewrite the entry " +
     "rather than widening this check."
 );
 process.exit(1);
