@@ -1,5 +1,13 @@
 # @catenaclearing/connect-sdk-react
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 14e6624: Shorter READMEs. The npm pages now cover setup, the quick start, options, events and common problems, and link to docs.catenatelematics.com for the full reference. No runtime change.
+- Updated dependencies [14e6624]
+  - @catenaclearing/connect-sdk@1.0.0-beta.11
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
