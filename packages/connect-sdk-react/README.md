@@ -80,7 +80,9 @@ call `destroy()` from `onClose`. With the component, unmount it.
 
 If a browser blocks both the iframe and the popup, the flow takes over the
 tab and returns to the success or failure URL on your invitation, if it has
-them. Render a component on each page that calls the resume hook:
+them. (If your app runs inside a frame, the flow never takes over the tab.
+The surface stays and asks the user to allow pop-ups.) Render a component on
+each page that calls the resume hook:
 
 ```jsx
 import { useCatenaConnectResume } from "@catenaclearing/connect-sdk-react";

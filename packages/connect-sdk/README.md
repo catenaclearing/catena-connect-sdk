@@ -88,7 +88,9 @@ never removes its surface on its own, so call `destroy()` from `onClose`.
 If a browser blocks both the iframe and the popup, the flow takes over the
 tab. When it finishes, it sends the user to the success or failure URL on
 your invitation, if the invitation has them. Call `resume()` on each of those
-pages to get the outcome:
+pages to get the outcome. If the page that calls `open()` is itself inside a
+frame, the flow never takes over the tab. The surface stays and asks the user
+to allow pop-ups.
 
 ```js
 import { resume } from "@catenaclearing/connect-sdk";
@@ -123,9 +125,14 @@ Both pages must be on the same origin as the page that called `open()`.
 | `logoUrl`, `logoUrlDark` | `string` | no | Absolute `https` URLs. |
 | `onOpen`, `onConnection`, `onConnectionDeleted`, `onSuccess`, `onExit`, `onClose` | callbacks | no | See [Events](#events). |
 
-`variant` and `theme` also accept other strings, so a value the flow adds later works without an upgrade. The branding options apply only when the embed key is valid. `preload()`
-takes `inviteUrl` and `embedKey` and runs the iframe check ahead of the click.
-It's optional.
+`variant` and `theme` also accept other strings, so a value the flow adds
+later works without an upgrade. The branding options apply only when the
+embed key is valid.
+
+`preload({ inviteUrl, embedKey })` is optional. It runs the iframe check
+before the click, so `open()` starts faster. `embedKey` is optional too, but
+pass the same key you'll pass to `open()`, or `open()` has to run the check
+again.
 
 The [JavaScript reference](https://docs.catenatelematics.com/get-started/connect-sdk/javascript-reference)
 covers every option, `resume()` and `preload()` in full.
