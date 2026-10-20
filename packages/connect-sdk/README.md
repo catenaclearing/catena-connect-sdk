@@ -177,7 +177,7 @@ record the connections.
 
 **`open()` throws.** The invitation URL doesn't parse or isn't `https` (plain
 `http` works only on `localhost`, `127.0.0.1` and `[::1]`), or `embedKey` is
-empty, only spaces, or not a string. It also throws outside a browser, or
+empty, only whitespace, or not a string. It also throws outside a browser, or
 before `<body>` exists without a `container`.
 
 [Troubleshooting](https://docs.catenatelematics.com/get-started/connect-sdk/troubleshooting)
