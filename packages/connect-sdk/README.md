@@ -142,8 +142,9 @@ install from npm needs:
   `script-src`, and if it has neither, use `default-src`. Browsers that do not
   support `script-src-elem` read `script-src` instead, so to cover them, add
   the sources there as well. If your policy uses `'strict-dynamic'`, browsers
-  ignore host sources such as the CDN. Give both `<script>` tags your
-  policy's nonce instead.
+  ignore host sources such as the CDN. Instead, put the nonce from your
+  policy's `'nonce-…'` source in a `nonce` attribute on both `<script>` tags.
+  Your server generates a new nonce for each response.
 
 - Keep the launch code in a file, as above. An inline `<script>` runs only if
   your policy allows it through a nonce, a hash or `'unsafe-inline'`.
@@ -1110,11 +1111,10 @@ Change it to `same-origin-allow-popups`
 did not run the browser build, so the global was never defined. The console
 shows which of these it was, next to the error:
 
-- Your Content Security Policy blocks the CDN or your launch script. The
-  console shows a violation report for `script-src-elem`, `script-src`, or
-  `default-src` when the policy has neither. Allow the CDN and the origin of
-  your launch script, or give both tags your nonce if the policy uses
-  `'strict-dynamic'`.
+- Your Content Security Policy blocks the CDN. The console shows a violation
+  report for `script-src-elem`, `script-src`, or `default-src` when the policy
+  has neither. Allow the CDN. If the policy uses `'strict-dynamic'`, put the
+  policy's nonce on the CDN `<script>` tag instead.
 
 - The `integrity` hash does not match the file. The usual reasons are a hash
   computed for another version, or a hash taken from the file the CDN serves
@@ -1124,6 +1124,11 @@ shows which of these it was, next to the error:
 
 - The version in the URL is older than `1.0.0-beta.10`, which has no browser
   build. The request for the file returns 404. Use `1.0.0-beta.10` or later.
+
+If the policy blocks your launch script as well, nothing throws, because the
+code that would refer to `CatenaConnect` never runs. The click does nothing,
+and the console shows only the violation report. Allow the launch script's
+origin, such as `'self'`, or give it the nonce too.
 
 **`open()` throws.** The invitation URL does not parse, is not http or https,
 or is http on a host other than `localhost`, `127.0.0.1` or `[::1]`
