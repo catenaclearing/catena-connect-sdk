@@ -136,6 +136,9 @@ function probePage(raw, silent) {
 (function () {
   if (${silent ? "true" : "false"}) return;
   var settled = false;
+  // Written out rather than built from the SDK's constants, as the real page
+  // is, so a rename in the SDK cannot carry this page along with it.
+  // \`packages/connect-sdk/src/contract.test.ts\` pins the same shape.
   var post = function (supported) {
     if (settled) return;
     settled = true;
