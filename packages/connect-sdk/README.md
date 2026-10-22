@@ -26,11 +26,8 @@ popup, but its messages never reach your page.
 
 ## Install
 
-> **Beta.** Install with the `@beta` tag. A plain install resolves to
-> `0.0.2`, an empty skeleton, until `1.0.0` is published.
-
 ```sh
-npm install @catenaclearing/connect-sdk@beta
+npm install @catenaclearing/connect-sdk
 ```
 
 Copy the name from here or from
@@ -51,7 +48,7 @@ Without a bundler, load the browser build from a CDN. It defines a global,
 ></script>
 ```
 
-Pin an exact `VERSION`, `1.0.0-beta.10` or later. Compute `HASH` from the
+Pin an exact `VERSION`, `1.0.0` or later. Compute `HASH` from the
 package on npm, not from the file the CDN serves:
 
 ```sh
@@ -186,12 +183,10 @@ covers these and more. To embed the flow with no package, see
 
 ## Versioning and support
 
-This package follows semver from `1.0.0`. The `1.0.0-beta.N` releases before
-it carry no compatibility promise.
-
-From `1.0.0`, a major release is the only one that removes or changes
-something you rely on, and its changelog entry says how to migrate. Anything deprecated keeps working for at least six
-months and at least one minor release before a major removes it. The previous
+This package follows semver. A major release is the only one that removes or
+changes something you rely on, and its changelog entry says how to migrate.
+Anything deprecated keeps working for at least six months and at least one
+minor release before a major removes it. The previous
 major gets security fixes, and fixes for changes on the Catena side, for twelve
 months after the next one is published.
 
