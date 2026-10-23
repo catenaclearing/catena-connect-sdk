@@ -112,8 +112,7 @@ floor.
 - Public documentation (both READMEs, the changelog, anything npm renders) names
   the package by its exact scoped name `@catenaclearing/connect-sdk`, shows the
   exact command `npm install @catenaclearing/connect-sdk` wherever an install
-  is meant (with the `@beta` suffix while `.changeset/pre.json` is in beta
-  mode, removed in the same PR that exits it), and links the name to
+  is meant, and links the name to
   https://www.npmjs.com/package/@catenaclearing/connect-sdk. Never a bare or
   paraphrased name ("the connect SDK package"): look-alike packages exist, and
   a reader who types the name from memory can land on one.

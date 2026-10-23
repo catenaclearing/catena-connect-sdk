@@ -14,11 +14,8 @@ every launching page's origin registered against that key
 
 ## Install
 
-> **Beta.** Install with the `@beta` tag. A plain install resolves to
-> `0.0.1`, a deprecated placeholder, until `1.0.0` is published.
-
 ```sh
-npm install @catenaclearing/connect-sdk-react@beta
+npm install @catenaclearing/connect-sdk-react
 ```
 
 Copy the name from here or from
@@ -27,11 +24,7 @@ Look-alike packages exist. The only official ones are this package and
 [`@catenaclearing/connect-sdk`](https://www.npmjs.com/package/@catenaclearing/connect-sdk).
 
 The core comes with it as a dependency. If you also install the core
-directly, keep both on the same major. During the beta, that means:
-
-```sh
-npm install @catenaclearing/connect-sdk@beta
-```
+directly, keep both on the same major.
 
 ## Quick start
 
@@ -145,9 +138,7 @@ delivered unchanged
 ## Versioning and support
 
 This package follows the core's
-[versioning and support policy](https://docs.catenatelematics.com/get-started/connect-sdk/versioning):
-semver from `1.0.0`, with no promise across the `1.0.0-beta.N` releases
-before it.
+[versioning and support policy](https://docs.catenatelematics.com/get-started/connect-sdk/versioning).
 
 **Currently deprecated:** Nothing.
 
