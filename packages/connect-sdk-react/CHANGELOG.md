@@ -1,5 +1,13 @@
 # @catenaclearing/connect-sdk-react
 
+## 1.0.0
+
+### Patch Changes
+
+- b208095: First stable release. Install without the `@beta` tag: `npm install @catenaclearing/connect-sdk` for the core, or `npm install @catenaclearing/connect-sdk-react` for React. The API is the same as `1.0.0-beta.12` (core) and `1.0.0-beta.7` (React), and the versioning and support policy applies from this release. The READMEs drop the beta install notes. No runtime change.
+- Updated dependencies [b208095]
+  - @catenaclearing/connect-sdk@1.0.0
+
 ## 1.0.0-beta.7
 
 ### Patch Changes
