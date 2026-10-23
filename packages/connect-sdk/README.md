@@ -183,12 +183,12 @@ covers these and more. To embed the flow with no package, see
 
 ## Versioning and support
 
-This package follows semver. A major release is the only one that removes or
-changes something you rely on, and its changelog entry says how to migrate.
-Anything deprecated keeps working for at least six months and at least one
-minor release before a major removes it. The previous
-major gets security fixes, and fixes for changes on the Catena side, for twelve
-months after the next one is published.
+This package follows semver from `1.0.0`. A major release is the only one
+that removes or changes something you rely on, and its changelog entry says
+how to migrate. Anything deprecated keeps working for at least six months and
+at least one minor release before a major removes it. The previous major gets
+security fixes, and fixes for changes on the Catena side, for twelve months
+after the next one is published.
 
 The [full policy](https://docs.catenatelematics.com/get-started/connect-sdk/versioning)
 says what it covers and what counts as breaking.
