@@ -43,5 +43,6 @@
   "catena-connct-sdk",
   "catena-corpus",
   "@3sixty/standards-vda",
-  "catena"
+  "catena",
+  "@arena2036/portal-shared-components-furniture-x"
 ]
