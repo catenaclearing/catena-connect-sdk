@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # The pnpm workspace root; covers packages/*. defensive/ is not a
+  # workspace member and is deliberately left out: its stubs are pinned
+  # one-shot publishes with no dependencies.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # A release has a week on the registry before it is proposed, so a
+    # compromised version is more likely to be caught and pulled first.
+    # Security updates are not delayed by this.
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Bumps the commit SHA each action is pinned to, along with its
+  # `# vX.Y.Z` comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
