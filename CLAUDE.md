@@ -54,6 +54,7 @@ scripts/
   squat-allowlist.json
 .changeset/           # Changesets — one per user-facing change
 .github/workflows/    # ci.yml, release.yml, publish-stubs.yml, squat-watch.yml
+.github/dependabot.yml # Weekly grouped npm + Actions updates, 7-day cooldown
 .github/CODEOWNERS    # One maintainers team owns everything; its review gates every merge
 ```
 
@@ -184,7 +185,9 @@ transferring the repository means updating it in every package.
 Every PR that changes published package code needs a real changeset
 (`pnpm changeset`, target `@catenaclearing/connect-sdk`, one user-facing line).
 Use an **empty** changeset (`---\n---`) for changes with no runtime effect:
-CI/workflow config, docs, `defensive/`, `scripts/`. An empty changeset next to a
+CI/workflow config, docs, `defensive/`, `scripts/`. Dependabot PRs fall
+under this too (they bump development tooling or Actions only), and arrive
+without one, so add the empty changeset before merging. An empty changeset next to a
 real code change is a bug, not a style choice. A change to a package's
 `README.md` is the exception the other way: npm shows the README from the last
 publish, so it gets a `patch` changeset (ending "No runtime change.") for each
