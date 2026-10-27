@@ -44,5 +44,6 @@
   "catena-corpus",
   "@3sixty/standards-vda",
   "catena",
-  "@arena2036/portal-shared-components-furniture-x"
+  "@arena2036/portal-shared-components-furniture-x",
+  "@generazioneai/audit-catalog"
 ]
