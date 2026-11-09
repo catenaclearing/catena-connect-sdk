@@ -45,5 +45,7 @@
   "@3sixty/standards-vda",
   "catena",
   "@arena2036/portal-shared-components-furniture-x",
-  "@generazioneai/audit-catalog"
+  "@generazioneai/audit-catalog",
+  "@tc-libs/storage",
+  "opencode-agent-models"
 ]
